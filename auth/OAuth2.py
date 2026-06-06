@@ -78,6 +78,41 @@ def get_current_tutor(credentials: HTTPAuthorizationCredentials = Depends(bearer
             detail='Token is invalid or expired'
         )
 
+def get_current_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+) -> Tutor:
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get('sub')
+        role: str = payload.get('role')
+
+        if user_id is None or role != "tutor":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Access restricted to tutors only'
+            )
+
+        tutor = get_tutor_by_id(db, int(user_id))
+        if not tutor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tutor not found"
+            )
+        if not tutor.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Admin privileges required'
+            )
+        return tutor
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Token is invalid or expired'
+        )
+
 def get_current_student(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db)

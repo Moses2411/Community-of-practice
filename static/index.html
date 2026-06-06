@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ABU CoP Research Platform</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <main id="auth-screen" class="auth-shell">
+      <section class="auth-panel">
+        <div>
+          <p class="eyebrow">ABU Zaria Computer Science Education</p>
+          <h1>Community of Practice</h1>
+          <p class="muted">Learning workspace and research data collection platform.</p>
+        </div>
+
+        <div class="auth-grid">
+          <form id="login-form" class="panel form-stack">
+            <h2>Sign In</h2>
+            <label>Email <input name="email" type="email" required /></label>
+            <label>Password <input name="password" type="password" required /></label>
+            <button type="submit">Sign In</button>
+          </form>
+
+          <form id="register-form" class="panel form-stack">
+            <h2>Register</h2>
+            <div class="two-col">
+              <label>Full Name <input name="full_name" required /></label>
+              <label>Email <input name="email" type="email" required /></label>
+            </div>
+            <div class="two-col">
+              <label>Password <input name="password" type="password" minlength="6" required /></label>
+              <label>Level <input name="level" placeholder="e.g. 400 Level" /></label>
+            </div>
+            <label>Learning Interests <textarea name="interests" rows="2"></textarea></label>
+            <label>Study Group
+              <select name="study_group">
+                <option value="experimental">Experimental</option>
+                <option value="control">Control</option>
+              </select>
+            </label>
+            <label class="check-row">
+              <input name="accepted_research_consent" type="checkbox" checked />
+              <span>I consent to my anonymized learning activity being used for this academic research.</span>
+            </label>
+            <button type="submit">Create Account</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <main id="app-screen" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <span class="brand-mark">CoP</span>
+          <div>
+            <strong>ABU CoP</strong>
+            <small>Research Platform</small>
+          </div>
+        </div>
+        <nav id="nav"></nav>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p id="view-kicker" class="eyebrow">Workspace</p>
+            <h1 id="view-title">Overview</h1>
+          </div>
+          <div class="user-pill">
+            <span id="user-name"></span>
+            <button id="logout-btn" type="button">Sign Out</button>
+          </div>
+        </header>
+
+        <section id="message" class="message hidden"></section>
+        <section id="content" class="content"></section>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

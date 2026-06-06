@@ -5,14 +5,18 @@ from schemas import UserCreate
 import random
 
 
-def create_user(request:UserCreate, db: Session):
+def create_user(request: UserCreate, db: Session):
     hashed_password = Hash.hash_password(request.password)
-    user = User(username = request.username, email = request.email, password = hashed_password, 
-    department = request.department, is_tutor = request.is_tutor)
+    user = User(
+        username=request.username,
+        email=request.email,
+        password=hashed_password,
+        program=request.program
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user 
+    return user
 
 def get_user_by_id(db:Session, id: int):
     return db.query(User).filter(User.id == id).first()
