@@ -7,49 +7,162 @@
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
-    <main id="auth-screen" class="auth-shell">
-      <section class="auth-panel">
-        <div>
-          <p class="eyebrow">ABU Zaria Computer Science Education</p>
-          <h1>Community of Practice</h1>
-          <p class="muted">Learning workspace and research data collection platform.</p>
+    <!-- ====== AUTH / LANDING ====== -->
+    <main id="auth-screen">
+      <section id="landing-view" class="landing">
+        <div class="landing-bg">
+          <div class="landing-pattern"></div>
+          <div class="landing-glow landing-glow-1"></div>
+          <div class="landing-glow landing-glow-2"></div>
+          <div class="landing-glow landing-glow-3"></div>
         </div>
-
-        <div class="auth-grid">
-          <form id="login-form" class="panel form-stack">
-            <h2>Sign In</h2>
-            <label>Email <input name="email" type="email" required /></label>
-            <label>Password <input name="password" type="password" required /></label>
-            <button type="submit">Sign In</button>
-          </form>
-
-          <form id="register-form" class="panel form-stack">
-            <h2>Register</h2>
-            <div class="two-col">
-              <label>Full Name <input name="full_name" required /></label>
-              <label>Email <input name="email" type="email" required /></label>
+        <div class="landing-content">
+          <header class="landing-header">
+            <div class="brand-block landing-brand">
+              <div class="brand-shield">
+                <svg width="28" height="34" viewBox="0 0 28 34" fill="none">
+                  <path d="M14 0L27 7V20C27 27.5 21 33 14 34C7 33 1 27.5 1 20V7L14 0Z" fill="#d4a843"/>
+                  <path d="M14 3L23 8V19C23 25 18.5 29.5 14 30.5C9.5 29.5 5 25 5 19V8L14 3Z" fill="#0f2a2e"/>
+                  <text x="14" y="22" text-anchor="middle" fill="#d4a843" font-size="10" font-weight="800" font-family="Inter,sans-serif">CoP</text>
+                </svg>
+              </div>
+              <div>
+                <strong>Ahmadu Bello University</strong>
+                <small>Community of Practice &middot; Research Platform</small>
+              </div>
             </div>
-            <div class="two-col">
-              <label>Password <input name="password" type="password" minlength="6" required /></label>
-              <label>Level <input name="level" placeholder="e.g. 400 Level" /></label>
+          </header>
+
+          <div class="hero">
+            <span class="hero-badge">Department of Computer Science</span>
+            <h1>Learn Together.<br />Grow Faster.</h1>
+            <p class="hero-text">
+              A collaborative workspace where Computer Science students engage with
+              curated resources, peer discussions, and adaptive assessments while
+              contributing to education research.
+            </p>
+          </div>
+
+          <div class="auth-cards">
+            <button class="auth-card" data-action="show-login" type="button">
+              <span class="auth-card-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              </span>
+              <span class="auth-card-label">Sign In</span>
+            </button>
+            <button class="auth-card" data-action="show-register" type="button">
+              <span class="auth-card-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              </span>
+              <span class="auth-card-label">Join the Study</span>
+            </button>
+          </div>
+
+          <div class="landing-features">
+            <div class="landing-feature">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              <span>Curated Resources</span>
             </div>
-            <label>Learning Interests <textarea name="interests" rows="2"></textarea></label>
-            <label>Study Group
-              <select name="study_group">
-                <option value="experimental">Experimental</option>
-                <option value="control">Control</option>
-              </select>
-            </label>
-            <label class="check-row">
-              <input name="accepted_research_consent" type="checkbox" checked />
-              <span>I consent to my anonymized learning activity being used for this academic research.</span>
-            </label>
-            <button type="submit">Create Account</button>
-          </form>
+            <div class="landing-feature">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Peer Discussions</span>
+            </div>
+            <div class="landing-feature">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>Adaptive Quizzes</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Login Form Overlay -->
+      <section id="login-view" class="auth-form-view hidden">
+        <div class="auth-form-bg"></div>
+        <div class="auth-form-container">
+          <div class="auth-form-panel">
+            <button class="auth-back-btn" data-action="back-to-landing" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back
+            </button>
+            <h2>Welcome Back</h2>
+            <p class="muted">Sign in to your account to continue.</p>
+            <div id="login-alert" class="form-alert hidden"></div>
+            <form id="login-form" class="form-stack" novalidate>
+              <label>
+                Email
+                <input name="email" type="email" required autocomplete="email" />
+                <span class="field-error" data-field="email"></span>
+              </label>
+              <label>
+                Password
+                <input name="password" type="password" required autocomplete="current-password" />
+                <span class="field-error" data-field="password"></span>
+              </label>
+              <button class="btn-primary" type="submit">Sign In</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Register Form Overlay -->
+      <section id="register-view" class="auth-form-view hidden">
+        <div class="auth-form-bg"></div>
+        <div class="auth-form-container">
+          <div class="auth-form-panel">
+            <button class="auth-back-btn" data-action="back-to-landing" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back
+            </button>
+            <h2>Join the Study</h2>
+            <p class="muted">Create your account to participate in the research.</p>
+            <div id="register-alert" class="form-alert hidden"></div>
+            <form id="register-form" class="form-stack" novalidate>
+              <label>
+                Full Name
+                <input name="full_name" required autocomplete="name" />
+                <span class="field-error" data-field="full_name"></span>
+              </label>
+              <label>
+                Email
+                <input name="email" type="email" required autocomplete="email" />
+                <span class="field-error" data-field="email"></span>
+              </label>
+              <div class="two-col">
+                <label>
+                  Password
+                  <input name="password" type="password" minlength="6" required autocomplete="new-password" />
+                  <span class="field-error" data-field="password"></span>
+                </label>
+                <label>
+                  Level
+                  <input name="level" placeholder="e.g. 400 Level" />
+                  <span class="field-error" data-field="level"></span>
+                </label>
+              </div>
+              <label>
+                Learning Interests
+                <textarea name="interests" rows="2" placeholder="What areas of CS interest you?"></textarea>
+                <span class="field-error" data-field="interests"></span>
+              </label>
+              <label>
+                Study Group
+                <select name="study_group">
+                  <option value="experimental">Experimental</option>
+                  <option value="control">Control</option>
+                </select>
+              </label>
+              <label class="check-row">
+                <input name="accepted_research_consent" type="checkbox" checked />
+                <span>I consent to my anonymized learning activity being used for this academic research.</span>
+              </label>
+              <button class="btn-primary" type="submit">Create Account</button>
+            </form>
+          </div>
         </div>
       </section>
     </main>
 
+    <!-- ====== APP ====== -->
     <main id="app-screen" class="app-shell hidden">
       <aside class="sidebar">
         <div class="brand-block">
@@ -69,12 +182,15 @@
             <h1 id="view-title">Overview</h1>
           </div>
           <div class="user-pill">
+            <button id="notification-btn" class="notif-btn" type="button" title="Notifications">
+              <span id="notif-count" class="notif-count hidden">0</span>
+            </button>
             <span id="user-name"></span>
             <button id="logout-btn" type="button">Sign Out</button>
           </div>
         </header>
 
-        <section id="message" class="message hidden"></section>
+        <section id="toast" class="toast hidden"></section>
         <section id="content" class="content"></section>
       </section>
     </main>

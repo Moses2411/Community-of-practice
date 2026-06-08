@@ -27,7 +27,10 @@ def serialize_user(user: User) -> dict:
     }
 
 
-def serialize_course(course: Course) -> dict:
+def serialize_course(course: Course, user_id: int | None = None) -> dict:
+    is_joined = False
+    if user_id is not None:
+        is_joined = any(m.user_id == user_id for m in course.memberships)
     return {
         "id": course.id,
         "title": course.title,
@@ -38,6 +41,7 @@ def serialize_course(course: Course) -> dict:
         "member_count": len(course.memberships),
         "resource_count": len(course.resources),
         "discussion_count": len(course.threads),
+        "is_joined": is_joined,
     }
 
 

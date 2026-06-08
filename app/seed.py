@@ -16,6 +16,8 @@ from model import (
     QuizAttempt,
     QuizQuestion,
     Resource,
+    Survey,
+    SurveyQuestion,
     User,
 )
 
@@ -267,385 +269,124 @@ def seed_database(db: Session) -> None:
 
     if db.scalar(select(func.count(Resource.id))) == 0:
         resources = [
-            Resource(
-                course_id=courses_by_code["COSC101"].id,
-                created_by_id=researcher.id,
-                title="Computer Hardware Basics",
-                resource_type="note",
-                difficulty="beginner",
-                estimated_minutes=10,
-                body=(
-                    "A computer system consists of input devices, output devices, the system unit, "
-                    "and storage. The CPU executes instructions, RAM provides temporary storage, "
-                    "and the hard drive or SSD stores data permanently."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC211"].id,
-                created_by_id=researcher.id,
-                title="Getting Started with Java Programming",
-                resource_type="guide",
-                difficulty="beginner",
-                estimated_minutes=10,
-                body=(
-                    "Before asking for help, check the error message, identify the line number, "
-                    "read variable values, test one small change, and explain what you expected."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC301"].id,
-                created_by_id=researcher.id,
-                title="Choosing the Right Data Structure",
-                resource_type="note",
-                difficulty="intermediate",
-                estimated_minutes=18,
-                body=(
-                    "Use arrays for indexed access, stacks for last-in-first-out workflows, queues "
-                    "for first-in-first-out tasks, hash tables for fast lookup, and trees for hierarchy."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC309"].id,
-                created_by_id=researcher.id,
-                title="Normalization in Plain Language",
-                resource_type="note",
-                difficulty="intermediate",
-                estimated_minutes=20,
-                body=(
-                    "Normalization reduces repeated data and update errors. First normal form removes "
-                    "repeating groups, second normal form removes partial dependency, and third normal "
-                    "form removes transitive dependency."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["SECS403"].id,
-                created_by_id=researcher.id,
-                title="Conducting Research in CS Education",
-                resource_type="research-support",
-                difficulty="beginner",
-                estimated_minutes=8,
-                body=(
-                    "A CS education research project typically includes a statement of the problem, "
-                    "literature review, theoretical framework, research questions, methodology, "
-                    "data analysis, findings, discussion, and conclusions. Ethical approval and "
-                    "informed consent are required before data collection begins."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC203"].id,
-                created_by_id=researcher.id,
-                title="Discrete Structures Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.mheducation.com/highered/product/discrete-mathematics-applications-rosen/M9780073383095.html",
-                video_url="https://youtube.com/playlist?list=PLl-gb0E4MII28GykmtuBXNUNoejvY5Rir",
-                blog_url="https://medium.com/@csmath/discrete-mathematics-for-cs",
-                body=(
-                    "1. K. Rosen, Discrete Mathematics and Its Applications, 6th Ed., McGraw-Hill, 2007. "
-                    "2. F. Giannasi and R. Low, Maths for Computing and IT, Longman, 1996. "
-                    "3. J. Truss, Discrete Mathematics for Computer Scientists, Addison-Wesley, 1999."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC204"].id,
-                created_by_id=researcher.id,
-                title="Assembly Language Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/computer-system-design-architecture",
-                video_url="https://youtube.com/playlist?list=PLxN4E629oPnJ2ayhPfmwQBb2M4QGRXxLd",
-                blog_url="https://www.reversinglabs.com/blog/assembly-language-basics",
-                body=(
-                    "1. Vincent P. Heuring, Harry F. Jordan, Computer System Design & Architecture, Prentice Hall, 2004. "
-                    "2. Dandamudi et al, Introduction to Assembly Language Programming: From 8086 to Pentium, Springer, 1998."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC205"].id,
-                created_by_id=researcher.id,
-                title="Digital Logic Design Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/logic-computer-design-fundamentals",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjMH3mWf6klqiB7d0cO1sOX",
-                blog_url="https://www.allaboutcircuits.com/technical-articles/digital-logic-design/",
-                body=(
-                    "1. M. M. Mano and C. R. Kime, Logic and Computer Design Fundamentals & XILINX 6.3, 3rd Ed., Prentice Hall, 2004. "
-                    "2. Englander, The Architecture of Computer Hardware and Systems Software, 3rd Ed., Wiley, 2003."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC206"].id,
-                created_by_id=researcher.id,
-                title="HCI Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/human-computer-interaction",
-                video_url="https://youtube.com/playlist?list=PLVHgdkG5gPpgrJ7IUjjYKq8cf6PNKFWaR",
-                blog_url="https://www.interaction-design.org/literature/topics/human-computer-interaction",
-                body=(
-                    "1. Dix, Finlay, Aboud & Beale, Human-Computer Interaction, 3rd Ed., Pearson, 2004. "
-                    "2. Preece, J., Rogers, Y. & Sharp, H., Interaction Design: Beyond Human-Computer Interaction, Wiley, 2002."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC208"].id,
-                created_by_id=researcher.id,
-                title="Artificial Intelligence Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/artificial-intelligence-modern-approach",
-                video_url="https://youtube.com/playlist?list=PLUl4u3cNGP63gFHB6xb-kVBiQHYe_4hSi",
-                blog_url="https://machinelearningmastery.com/blog/",
-                body=(
-                    "1. Stuart Russell and Peter Norvig, AI: A Modern Approach, 2nd Ed., Prentice Hall, 2003. "
-                    "2. G.F. Luger, Artificial Intelligence: Structures and Strategies, 5th Ed., Addison Wesley, 2005."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC212"].id,
-                created_by_id=researcher.id,
-                title="OOP II Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.jblearning.com/catalog/productdetails/9780763757959",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjWmhQlw8UvyQ7nYb3Q0g5R",
-                blog_url="https://www.geeksforgeeks.org/object-oriented-programming-in-java/",
-                body=(
-                    "1. Nell Dale and Chip Weems, Programming and Problem Solving with Java, 2nd Ed., Jones and Bartlett, 2008. "
-                    "2. J. Lewis and W. Loftus, Java Software Solutions, 5th Ed., Addison Wesley, 2006. "
-                    "3. D.J. Barnes and M.K. Kolling, Objects First with Java, Pearson, 2006."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC303"].id,
-                created_by_id=researcher.id,
-                title="Computer Architecture Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.elsevier.com/books/computer-architecture/patterson/978-0-12-370490-0",
-                video_url="https://youtube.com/playlist?list=PL5PHm2jkkXmi5CxxI7b3JCL1HvKZ5J0Wq",
-                blog_url="https://www.computerscience.gcse.guru/theory/computer-architecture",
-                body=(
-                    "1. David Patterson & John Hennessy, Computer Architecture: A Quantitative Approach, 4th Ed., Kaufmann, 2006. "
-                    "2. Linda Null and Julia Lobur, The Essentials of Computer Organization and Architecture, 2nd Ed., Jones & Bartlett, 2006."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC305"].id,
-                created_by_id=researcher.id,
-                title="Systems Analysis and Design Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.wiley.com/en-us/Systems+Analysis+and+Design%2C+3rd+Edition-p-9780471756125",
-                video_url="https://youtube.com/playlist?list=PLWPirh4EWFpFU1__BKbXHqV3N_7GJxN0t",
-                blog_url="https://www.visual-paradigm.com/guide/uml/",
-                body=(
-                    "1. Dennis, Wixom, Roth, Systems Analysis and Design, 3rd Ed., John Wiley, 2006. "
-                    "2. Bennett, McRobb & Farmer, Object Oriented Systems Analysis and Design Using UML, 3rd Ed., McGraw-Hill, 2006. "
-                    "3. Roger S. Pressman, Software Engineering: A Practitioner's Approach, 6th Ed., McGraw-Hill, 2005."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC311"].id,
-                created_by_id=researcher.id,
-                title="Programming Languages Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/concepts-of-programming-languages",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW0T4_7kPZOBWw4aE6QaX9",
-                blog_url="https://dev.to/t/programminglanguages",
-                body=(
-                    "1. Robert W. Sebesta, Concepts of Programming Languages, 7th Ed., Addison-Wesley, 2006. "
-                    "2. Kenneth Louden, Programming Languages: Principles and Practice, 2nd Ed., Course Technology, 2003. "
-                    "3. Allen Tucker and Robert Noonan, Programming Languages: Principles and Paradigms, McGraw-Hill, 2002."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC401"].id,
-                created_by_id=researcher.id,
-                title="Algorithms Textbooks",
-                resource_type="reference",
-                difficulty="advanced",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/introduction-to-the-design-analysis-of-algorithms",
-                video_url="https://youtube.com/playlist?list=PLUl4u3cNGP63EdVPNLG3ToM6LaEUuStmh",
-                blog_url="https://www.geeksforgeeks.org/fundamentals-of-algorithms/",
-                body=(
-                    "1. Anany Levitin, Introduction to the Design and Analysis of Algorithms, Addison Wesley, 2003. "
-                    "2. M. Al-Suwaiyel, Algorithms: Design Techniques & Analysis, World Scientific, 1999. "
-                    "Online: http://www.cs.ucsd.edu/classes/wi05/cse101/"
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC402"].id,
-                created_by_id=researcher.id,
-                title="Formal Methods Textbooks",
-                resource_type="reference",
-                difficulty="advanced",
-                estimated_minutes=5,
-                url="https://www.cambridge.org/core/books/logic-in-computer-science/E3A1E2F1A1C2B3D4E5F6A7B8C9D0E1F2",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW7h6r5S5g5f5b5f5b5f5b5",
-                blog_url="https://medium.com/@formalmethods/introduction-to-formal-methods",
-                body=(
-                    "1. Jonathan Bowen, Formal Specification and Documentation using Z, ITCP, 1996. "
-                    "2. Huth, M. and Ryan, M., Logic in Computer Science, Cambridge University Press, 1999. "
-                    "3. Cliff B. Jones, Systematic Software Development Using VDM, 2nd Ed., Prentice Hall, 1990."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC403"].id,
-                created_by_id=researcher.id,
-                title="Software Engineering Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.mheducation.com/highered/product/software-engineering-practitioner-s-approach-pressman/M9780078022128.html",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW0T4_7kPZOBWw4aE6QaX9",
-                blog_url="https://martinfowler.com/bliki/",
-                body=(
-                    "1. Roger S. Pressman, Software Engineering: A Practitioner's Approach, 6th Ed., McGraw-Hill, 2005. "
-                    "2. Ian Sommerville, Software Engineering, 8th Ed., Addison Wesley, 2006. "
-                    "3. Dennis, Wixom, Roth, Systems Analysis and Design, 3rd Ed., John Wiley, 2006."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC404"].id,
-                created_by_id=researcher.id,
-                title="Network Design Textbooks",
-                resource_type="reference",
-                difficulty="advanced",
-                estimated_minutes=5,
-                url="https://www.elsevier.com/books/network-analysis-architecture-and-design/mccabe/978-0-12-370490-0",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW7h6r5S5g5f5b5f5b5f5b5",
-                blog_url="https://www.networkcomputing.com/",
-                body=(
-                    "1. James D. McCabe, Network Analysis, Architecture and Design, 2nd Ed., Morgan Kaufmann, 2003. "
-                    "2. Rachel Morgan and Henry McGilton, Introducing Unix System V, McGraw-Hill, 1987."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC405"].id,
-                created_by_id=researcher.id,
-                title="Web Applications II Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/internet-world-wide-web-how-to-program",
-                video_url="https://youtube.com/playlist?list=PLbWDhxwM_45mPVToY0s4g3GjFZ7s0b5f5",
-                blog_url="https://developer.mozilla.org/en-US/",
-                body=(
-                    "1. Dietel, Dietel, Goldberg, Internet & World Wide Web How to Program, 4th Ed., Prentice-Hall, 2007. "
-                    "2. Jeffrey C. Jackson, Web Technologies: A Computer Science Perspective, Prentice Hall, 2007. "
-                    "3. Shepherd, G., Microsoft ASP.NET 2.0 Step by Step, Microsoft, 2006."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC406"].id,
-                created_by_id=researcher.id,
-                title="Advanced Database Textbooks",
-                resource_type="reference",
-                difficulty="advanced",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/fundamentals-of-database-systems",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW7h6r5S5g5f5b5f5b5f5b5",
-                blog_url="https://db-engines.com/en/blog",
-                body=(
-                    "1. Ramez Elmasri and Shamkant B. Navathe, Fundamentals of Database Systems, 5th Ed., Addison-Wesley, 2007. "
-                    "2. Carolyn Begg and Thomas Connolly, Database Systems: A Practical Approach, 4th Ed., Prentice Hall, 2004."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC407"].id,
-                created_by_id=researcher.id,
-                title="Data Communications Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.mheducation.com/highered/product/data-communications-networking-forouzan/M9780072967753.html",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW7h6r5S5g5f5b5f5b5f5b5",
-                blog_url="https://www.networkworld.com/",
-                body=(
-                    "1. Behrouz A. Forouzan, Data Communications and Networking, McGraw-Hill, 2004. "
-                    "2. Andrew Tanenbaum, Computer Networks, 4th Ed., Prentice Hall, 2003."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC408"].id,
-                created_by_id=researcher.id,
-                title="Compiler Construction Textbooks",
-                resource_type="reference",
-                difficulty="advanced",
-                estimated_minutes=5,
-                url="https://www.cambridge.org/core/books/modern-compiler-implementation-in-java/3E1A2F1A1C2B3D4E5F6A7B8C9D0E1F2",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW7h6r5S5g5f5b5f5b5f5b5",
-                blog_url="https://craftinginterpreters.com/",
-                body=(
-                    "1. Andrew W. Appel, Modern Compiler Implementation in Java, 2nd Ed., Cambridge University Press, 2002. "
-                    "2. ACM/IEEE Computing Curricula 2001: http://www.acm.org/sigcse/cc2001 "
-                    "3. NUC BMAS Benchmarks, National Universities Commission, 2007."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC409"].id,
-                created_by_id=researcher.id,
-                title="Professional and Social Aspects Textbooks",
-                resource_type="reference",
-                difficulty="intermediate",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/ethics-in-information-technology",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW7h6r5S5g5f5b5f5b5f5b5",
-                blog_url="https://www.eff.org/blog",
-                body=(
-                    "1. David Bainbridge, Introduction to Information Technology Law, 6th Ed., Longman, 2007. "
-                    "2. George Reynolds, Ethics in Information Technology, Course Technology, 2006."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC413"].id,
-                created_by_id=researcher.id,
-                title="Computational Science Textbooks",
-                resource_type="reference",
-                difficulty="advanced",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/parallel-programming-techniques-applications",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW7h6r5S5g5f5b5f5b5f5b5",
-                blog_url="https://www.hpcwire.com/",
-                body=(
-                    "1. Barry Wilkinson and Michael Allen, Parallel Programming: Techniques and Applications, 2nd Ed., Prentice-Hall, 2005. "
-                    "2. Michael J. Quinn, Parallel Programming in C with MPI and OpenMP, McGraw-Hill, 2003."
-                ),
-            ),
-            Resource(
-                course_id=courses_by_code["COSC416"].id,
-                created_by_id=researcher.id,
-                title="Simulation Methodology Textbooks",
-                resource_type="reference",
-                difficulty="advanced",
-                estimated_minutes=5,
-                url="https://www.pearson.com/en-us/subject-catalog/p/system-simulation",
-                video_url="https://youtube.com/playlist?list=PLBlnK6fEyqRjW7h6r5S5g5f5b5f5b5f5b5",
-                blog_url="https://www.informs.org/Blog",
-                body=(
-                    "1. Gordon G., System Simulation, Prentice Hall. "
-                    "2. Payer T.A., Introduction to Simulation, McGraw-Hill."
-                ),
-            ),
+            Resource(course_id=courses_by_code["COSC101"].id, created_by_id=researcher.id, title="Introduction to Computers - Full Course", resource_type="video", difficulty="beginner", estimated_minutes=60, video_url="https://www.youtube.com/watch?v=y2kg3MO2WeI", blog_url="https://edu.gcfglobal.org/en/computerbasics/", body="Complete beginner-friendly video covering hardware, software, operating systems, and how computers work. Start here if you are new to computing."),
+            Resource(course_id=courses_by_code["COSC101"].id, created_by_id=researcher.id, title="Computer Basics - Reading Guide", resource_type="blog", difficulty="beginner", estimated_minutes=20, url="https://www.tutorialspoint.com/computer_fundamentals/index.htm", blog_url="https://edu.gcfglobal.org/en/computerbasics/", body="Text-based tutorial covering input/output devices, system units, storage, and basic troubleshooting."),
+            Resource(course_id=courses_by_code["COSC211"].id, created_by_id=researcher.id, title="Java Programming for Beginners - freeCodeCamp", resource_type="video", difficulty="beginner", estimated_minutes=120, video_url="https://www.youtube.com/watch?v=A74TOX803D0", blog_url="https://www.geeksforgeeks.org/java/", body="A 4-hour freeCodeCamp Java tutorial covering data types, control flow, OOP basics, arrays, and exception handling."),
+            Resource(course_id=courses_by_code["COSC211"].id, created_by_id=researcher.id, title="Object-Oriented Programming Concepts Explained", resource_type="blog", difficulty="beginner", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/object-oriented-programming-oops-concept-in-java/", video_url="https://www.youtube.com/watch?v=pTB0EiLXUC8", body="Clear explanation of encapsulation, inheritance, polymorphism, and abstraction with Java examples."),
+            Resource(course_id=courses_by_code["COSC301"].id, created_by_id=researcher.id, title="Data Structures - CS Dojo Playlist", resource_type="video", difficulty="intermediate", estimated_minutes=90, video_url="https://www.youtube.com/playlist?list=PLBZBJbE_rGRV8D7XZ08LK6z-4zPoWzu5H", blog_url="https://www.geeksforgeeks.org/data-structures/", body="Visual and beginner-friendly explanations of arrays, linked lists, stacks, queues, trees, and hash tables."),
+            Resource(course_id=courses_by_code["COSC301"].id, created_by_id=researcher.id, title="Big-O Notation & Algorithm Analysis", resource_type="blog", difficulty="intermediate", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/analysis-of-algorithms-set-1-asymptotic-analysis/", video_url="https://www.youtube.com/watch?v=D6xkbGLQesk", body="Learn how to analyze algorithm efficiency using Big-O notation with practical examples."),
+            Resource(course_id=courses_by_code["COSC309"].id, created_by_id=researcher.id, title="SQL Tutorial - Full Database Course for Beginners", resource_type="video", difficulty="beginner", estimated_minutes=90, video_url="https://www.youtube.com/watch?v=HXV3zeQKqGY", blog_url="https://www.w3schools.com/sql/", body="Complete freeCodeCamp SQL tutorial covering SELECT, JOINs, aggregation, subqueries, and database design."),
+            Resource(course_id=courses_by_code["COSC309"].id, created_by_id=researcher.id, title="Database Normalization Explained (1NF, 2NF, 3NF, BCNF)", resource_type="blog", difficulty="intermediate", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/normal-forms-in-dbms/", video_url="https://www.youtube.com/watch?v=GFQaEYEc8_8", body="Step-by-step guide to database normalization with examples. Covers First through Third Normal Form and BCNF."),
+            Resource(course_id=courses_by_code["COSC309"].id, created_by_id=researcher.id, title="DBMS Notes - Complete Reference", resource_type="reference", difficulty="intermediate", estimated_minutes=30, url="https://www.javatpoint.com/dbms-tutorial", blog_url="https://www.tutorialspoint.com/dbms/index.htm", body="Comprehensive DBMS tutorial covering ER models, relational algebra, SQL, normalization, transactions, and concurrency control."),
+            Resource(course_id=courses_by_code["COSC307"].id, created_by_id=researcher.id, title="HTML & CSS Full Course", resource_type="video", difficulty="beginner", estimated_minutes=120, video_url="https://www.youtube.com/watch?v=G3e-cpL7ofc", blog_url="https://developer.mozilla.org/en-US/docs/Learn/HTML", body="Complete HTML and CSS tutorial from SuperSimpleDev covering structure, styling, layouts, and responsive design."),
+            Resource(course_id=courses_by_code["COSC307"].id, created_by_id=researcher.id, title="JavaScript DOM Manipulation Guide", resource_type="blog", difficulty="intermediate", estimated_minutes=25, blog_url="https://www.geeksforgeeks.org/dom-document-object-model/", video_url="https://www.youtube.com/watch?v=5fb2aPlgoys", body="Learn how to use JavaScript to manipulate web page content, handle events, and build interactive UIs."),
+            Resource(course_id=courses_by_code["COSC411"].id, created_by_id=researcher.id, title="Operating Systems - Neso Academy Playlist", resource_type="video", difficulty="intermediate", estimated_minutes=180, video_url="https://www.youtube.com/playlist?list=PLBlnK6fEyqRiVhbXDGLXDk_OQAeuVcp2O", blog_url="https://www.geeksforgeeks.org/operating-systems/", body="Comprehensive OS playlist covering processes, CPU scheduling, memory management, virtual memory, and file systems."),
+            Resource(course_id=courses_by_code["COSC411"].id, created_by_id=researcher.id, title="Process Management & Scheduling Algorithms", resource_type="blog", difficulty="intermediate", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/cpu-scheduling-in-operating-systems/", video_url="https://www.youtube.com/watch?v=MZdVAVMgNpA", body="Detailed breakdown of FCFS, SJF, Priority, and Round Robin scheduling algorithms with worked examples."),
+            Resource(course_id=courses_by_code["COSC203"].id, created_by_id=researcher.id, title="Discrete Mathematics - TrevTutor Playlist", resource_type="video", difficulty="intermediate", estimated_minutes=120, video_url="https://www.youtube.com/playlist?list=PLDDGPdw7e6Ag1EIznZ-m-qXu4XX3A0cIz", blog_url="https://www.geeksforgeeks.org/discrete-mathematics-tutorial/", body="Video series covering logic, sets, functions, relations, counting, graph theory, and recurrence relations."),
+            Resource(course_id=courses_by_code["COSC203"].id, created_by_id=researcher.id, title="Graph Theory Fundamentals", resource_type="blog", difficulty="intermediate", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/graph-theory-tutorial/", video_url="https://www.youtube.com/watch?v=LFKZLXVO-Dg", body="Introduction to graph types, representations, traversals, trees, and their applications in computer science."),
+            Resource(course_id=courses_by_code["COSC204"].id, created_by_id=researcher.id, title="Assembly Language Programming - Tutorial", resource_type="video", difficulty="intermediate", estimated_minutes=90, video_url="https://www.youtube.com/playlist?list=PLKK11LigqithKp_Y0A1kh_29YuoF1W5WA", blog_url="https://www.tutorialspoint.com/assembly_programming/index.htm", body="Assembly language programming tutorial covering registers, addressing modes, instructions, and program structure."),
+            Resource(course_id=courses_by_code["COSC204"].id, created_by_id=researcher.id, title="Number Systems & Data Representation", resource_type="blog", difficulty="intermediate", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/number-system-and-base-conversions/", video_url="https://www.youtube.com/watch?v=LpuPe81bc2w", body="Binary, octal, hexadecimal number systems and how computers represent integers, floating-point, and characters."),
+            Resource(course_id=courses_by_code["COSC205"].id, created_by_id=researcher.id, title="Digital Logic - Neso Academy Playlist", resource_type="video", difficulty="intermediate", estimated_minutes=120, video_url="https://www.youtube.com/playlist?list=PLBlnK6fEyqRjMH3mWf6klqiB7d0cO1sOX", blog_url="https://www.geeksforgeeks.org/digital-electronics-logic-design-tutorials/", body="Complete digital logic design course covering Boolean algebra, logic gates, K-maps, combinational and sequential circuits."),
+            Resource(course_id=courses_by_code["COSC205"].id, created_by_id=researcher.id, title="Karnaugh Maps (K-Maps) Explained", resource_type="blog", difficulty="intermediate", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/introduction-of-k-map-karnaugh-map/", video_url="https://www.youtube.com/watch?v=RO5alU6PpSU", body="Step-by-step guide to simplifying Boolean expressions using K-Maps with 2, 3, and 4 variable examples."),
+            Resource(course_id=courses_by_code["COSC206"].id, created_by_id=researcher.id, title="Human-Computer Interaction - Course Intro", resource_type="video", difficulty="intermediate", estimated_minutes=60, video_url="https://www.youtube.com/playlist?list=PLVHgdkG5gPpgrJ7IUjjYKq8cf6PNKFWaR", blog_url="https://www.interaction-design.org/literature/topics/human-computer-interaction", body="Introduction to HCI principles, usability heuristics, user-centered design, and interface evaluation methods."),
+            Resource(course_id=courses_by_code["COSC206"].id, created_by_id=researcher.id, title="Usability Heuristics - Nielsen's 10 Principles", resource_type="blog", difficulty="intermediate", estimated_minutes=15, blog_url="https://www.nngroup.com/articles/ten-usability-heuristics/", video_url="https://www.youtube.com/watch?v=6B-NM9HM8bI", body="Jakob Nielsen's 10 usability heuristics with real-world examples and how to apply them in interface design."),
+            Resource(course_id=courses_by_code["COSC208"].id, created_by_id=researcher.id, title="Artificial Intelligence - Free Course", resource_type="video", difficulty="intermediate", estimated_minutes=120, video_url="https://www.youtube.com/playlist?list=PLBlnK6fEyqRgjSOSTcfxFJPLQW0_BFeSC", blog_url="https://www.geeksforgeeks.org/artificial-intelligence-an-introduction/", body="Comprehensive AI playlist covering search algorithms, knowledge representation, expert systems, and machine learning basics."),
+            Resource(course_id=courses_by_code["COSC208"].id, created_by_id=researcher.id, title="Machine Learning - Andrew Ng Course Notes", resource_type="blog", difficulty="intermediate", estimated_minutes=30, blog_url="https://www.geeksforgeeks.org/machine-learning/", video_url="https://www.youtube.com/playlist?list=PLoROMvodv4rMiGQp3WXShtMGgzqpfVfbU", body="Stanford's famous ML course covering supervised learning, neural networks, and practical ML methodology."),
+            Resource(course_id=courses_by_code["COSC212"].id, created_by_id=researcher.id, title="Advanced Java & OOP - Coding with John", resource_type="video", difficulty="intermediate", estimated_minutes=90, video_url="https://www.youtube.com/playlist?list=PLqq-6Pq4lTTaV40RcNkPqFIh0S9_JhC-B", blog_url="https://www.geeksforgeeks.org/java/", body="Deep dive into polymorphism, interfaces, abstract classes, generics, collections framework, and design patterns."),
+            Resource(course_id=courses_by_code["COSC212"].id, created_by_id=researcher.id, title="Java Design Patterns Explained", resource_type="blog", difficulty="advanced", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/software-design-patterns/", video_url="https://www.youtube.com/watch?v=tv-_1er1mWI", body="Overview of creational, structural, and behavioral design patterns with Java implementations and real-world use cases."),
+            Resource(course_id=courses_by_code["COSC303"].id, created_by_id=researcher.id, title="Computer Architecture - Carnegie Mellon Course", resource_type="video", difficulty="advanced", estimated_minutes=120, video_url="https://www.youtube.com/playlist?list=PL5PHm2jkkXmi5CxxI7b3JCL1HvKZ5J0Wq", blog_url="https://www.geeksforgeeks.org/computer-organization-and-architecture-tutorials/", body="University-level computer architecture lectures covering pipelining, cache design, instruction-level parallelism, and memory hierarchy."),
+            Resource(course_id=courses_by_code["COSC303"].id, created_by_id=researcher.id, title="Cache Memory & Memory Hierarchy", resource_type="blog", difficulty="intermediate", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/cache-memory-in-computer-organization/", video_url="https://www.youtube.com/watch?v=yi0FhRqDJfo", body="Understanding how cache memory works, mapping techniques (direct, associative, set-associative), and performance analysis."),
+            Resource(course_id=courses_by_code["COSC305"].id, created_by_id=researcher.id, title="UML Diagrams - Complete Tutorial", resource_type="video", difficulty="intermediate", estimated_minutes=60, video_url="https://www.youtube.com/playlist?list=PLWPirh4EWFpFU1__BKbXHqV3N_7GJxN0t", blog_url="https://www.geeksforgeeks.org/unified-modeling-language-uml-introduction/", body="Complete guide to UML: use case diagrams, class diagrams, sequence diagrams, activity diagrams, and state charts."),
+            Resource(course_id=courses_by_code["COSC305"].id, created_by_id=researcher.id, title="SDLC Methodologies Compared", resource_type="blog", difficulty="intermediate", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/software-development-life-cycle-sdlc/", video_url="https://www.youtube.com/watch?v=i-QyW8D3ei0", body="Comparison of Waterfall, Agile, Scrum, and DevOps methodologies with pros/cons and when to use each approach."),
+            Resource(course_id=courses_by_code["COSC311"].id, created_by_id=researcher.id, title="Programming Paradigms Explained", resource_type="video", difficulty="intermediate", estimated_minutes=30, video_url="https://www.youtube.com/watch?v=3TBq__oKUzk", blog_url="https://www.geeksforgeeks.org/introduction-of-programming-paradigms/", body="Clear explanation of imperative, object-oriented, functional, and logic programming paradigms with examples in multiple languages."),
+            Resource(course_id=courses_by_code["COSC311"].id, created_by_id=researcher.id, title="Programming Language Concepts - Reference Guide", resource_type="reference", difficulty="intermediate", estimated_minutes=25, url="https://www.tutorialspoint.com/compiler_design/index.htm", blog_url="https://www.geeksforgeeks.org/introduction-of-programming-paradigms/", body="Covers syntax and semantics, data types, control structures, subprograms, exception handling, and type systems across languages."),
+            Resource(course_id=courses_by_code["COSC401"].id, created_by_id=researcher.id, title="Algorithms - MIT OpenCourseWare", resource_type="video", difficulty="advanced", estimated_minutes=180, video_url="https://www.youtube.com/playlist?list=PLUl4u3cNGP63EdVPNLG3ToM6LaEUuStmh", blog_url="https://www.geeksforgeeks.org/fundamentals-of-algorithms/", body="MIT 6.006 Introduction to Algorithms lectures covering divide-and-conquer, dynamic programming, greedy algorithms, and NP-completeness."),
+            Resource(course_id=courses_by_code["COSC401"].id, created_by_id=researcher.id, title="Dynamic Programming - Practice Guide", resource_type="blog", difficulty="advanced", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/dynamic-programming/", video_url="https://www.youtube.com/watch?v=oBt53YbR9Kk", body="Learn DP strategies with worked examples: memoization, tabulation, knapsack, LCS, and matrix chain multiplication."),
+            Resource(course_id=courses_by_code["COSC402"].id, created_by_id=researcher.id, title="Formal Methods & Logic in CS", resource_type="video", difficulty="advanced", estimated_minutes=90, video_url="https://www.youtube.com/playlist?list=PLlGpxZfYuK8LqUsRGZRc0HDZdoogKFW9G", blog_url="https://www.geeksforgeeks.org/introduction-of-formal-methods/", body="Introduction to formal specification, Z notation, Hoare logic, model checking, and verification techniques for software."),
+            Resource(course_id=courses_by_code["COSC402"].id, created_by_id=researcher.id, title="Finite State Machines & Model Checking", resource_type="blog", difficulty="advanced", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/introduction-of-finite-automata/", video_url="https://www.youtube.com/watch?v=Qa6csfkK7_I", body="Understanding FSMs, temporal logic, and how model checking verifies system properties against specifications."),
+            Resource(course_id=courses_by_code["COSC403"].id, created_by_id=researcher.id, title="Software Engineering - Full Course", resource_type="video", difficulty="intermediate", estimated_minutes=120, video_url="https://www.youtube.com/playlist?list=PLBlnK6fEyqRhP4UEr7RYwzLlEVpG2Vp9o", blog_url="https://www.geeksforgeeks.org/software-engineering/", body="Comprehensive software engineering course: requirements, design patterns, testing, project management, and agile methodologies."),
+            Resource(course_id=courses_by_code["COSC403"].id, created_by_id=researcher.id, title="Design Patterns - The Gang of Four", resource_type="blog", difficulty="intermediate", estimated_minutes=20, blog_url="https://refactoring.guru/design-patterns", video_url="https://www.youtube.com/watch?v=tv-_1er1mWI", body="Illustrated guide to the 23 classic GoF design patterns with UML diagrams, code examples, and real-world applications."),
+            Resource(course_id=courses_by_code["COSC404"].id, created_by_id=researcher.id, title="Network Design & Management Fundamentals", resource_type="video", difficulty="advanced", estimated_minutes=90, video_url="https://www.youtube.com/playlist?list=PLBlnK6fEyqRgMCUAG0HRw3UAxq5CAEEmS", blog_url="https://www.geeksforgeeks.org/computer-network-tutorials/", body="Network design methodologies, SNMP, RMON, MIB, fault and configuration management, and NOC operations explained."),
+            Resource(course_id=courses_by_code["COSC404"].id, created_by_id=researcher.id, title="Network Management Protocols - SNMP Deep Dive", resource_type="blog", difficulty="advanced", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/simple-network-management-protocol-snmp/", video_url="https://www.youtube.com/watch?v=7qB7e0LwYpQ", body="How SNMP v1/v2/v3 works, MIB structure, traps vs polling, and practical network monitoring with real examples."),
+            Resource(course_id=courses_by_code["COSC405"].id, created_by_id=researcher.id, title="Backend Web Development - Node.js Course", resource_type="video", difficulty="intermediate", estimated_minutes=120, video_url="https://www.youtube.com/watch?v=Oe421EPjeBE", blog_url="https://developer.mozilla.org/en-US/docs/Learn/Server-side/First_steps", body="Complete backend development course covering server-side JavaScript, REST APIs, databases, authentication, and deployment."),
+            Resource(course_id=courses_by_code["COSC405"].id, created_by_id=researcher.id, title="Web Security Best Practices", resource_type="blog", difficulty="intermediate", estimated_minutes=15, blog_url="https://developer.mozilla.org/en-US/docs/Web/Security", video_url="https://www.youtube.com/watch?v=1rF7bR5XQGo", body="OWASP Top 10, XSS, CSRF, SQL injection prevention, secure session management, and input validation techniques."),
+            Resource(course_id=courses_by_code["COSC406"].id, created_by_id=researcher.id, title="Advanced Databases - CMU Course", resource_type="video", difficulty="advanced", estimated_minutes=180, video_url="https://www.youtube.com/playlist?list=PLSE8ODhjZXjbj8BMuIrRcacnQh20hmY9g", blog_url="https://www.geeksforgeeks.org/dbms/", body="CMU 15-445 Advanced Database Systems: query optimization, concurrency control, distributed databases, and CAP theorem."),
+            Resource(course_id=courses_by_code["COSC406"].id, created_by_id=researcher.id, title="Concurrency Control Protocols Explained", resource_type="blog", difficulty="advanced", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/concurrency-control-in-dbms/", video_url="https://www.youtube.com/watch?v=ZxVO1ORNKgE", body="Two-phase locking, timestamp ordering, optimistic concurrency control, and multi-version concurrency control (MVCC) with examples."),
+            Resource(course_id=courses_by_code["COSC407"].id, created_by_id=researcher.id, title="Computer Networking - Full Course", resource_type="video", difficulty="intermediate", estimated_minutes=150, video_url="https://www.youtube.com/playlist?list=PLBlnK6fEyqRgMCUAG0HRw3UAxq5CAEEmS", blog_url="https://www.geeksforgeeks.org/computer-network-tutorials/", body="Complete networking course: OSI model, TCP/IP, routing protocols, DNS, subnetting, and Ethernet fundamentals."),
+            Resource(course_id=courses_by_code["COSC407"].id, created_by_id=researcher.id, title="TCP/IP and the OSI Model Explained", resource_type="blog", difficulty="intermediate", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/layers-of-osi-model/", video_url="https://www.youtube.com/watch?v=vv4y_uOneC0", body="Layer-by-layer breakdown of the OSI model with real-world protocol examples and comparison to TCP/IP stack."),
+            Resource(course_id=courses_by_code["COSC408"].id, created_by_id=researcher.id, title="Compiler Design - Neso Academy", resource_type="video", difficulty="advanced", estimated_minutes=120, video_url="https://www.youtube.com/playlist?list=PLBlnK6fEyqRjT3oJxFXRgjPNzeS-LFY-q", blog_url="https://www.geeksforgeeks.org/compiler-design-tutorials/", body="Complete compiler design playlist: lexical analysis, parsing (LL, LR), semantic analysis, code generation, and optimization."),
+            Resource(course_id=courses_by_code["COSC408"].id, created_by_id=researcher.id, title="Build Your Own Interpreter - Crafting Interpreters", resource_type="blog", difficulty="advanced", estimated_minutes=30, blog_url="https://craftinginterpreters.com/contents.html", video_url="https://www.youtube.com/watch?v=4m7msrdLPMs", body="Free online book walking through building a complete interpreter and compiler from scratch in Java and C."),
+            Resource(course_id=courses_by_code["COSC409"].id, created_by_id=researcher.id, title="Computer Ethics & Professional Responsibility", resource_type="video", difficulty="intermediate", estimated_minutes=45, video_url="https://www.youtube.com/watch?v=oFfWwNlwX-4", blog_url="https://www.geeksforgeeks.org/professional-ethics-in-computing/", body="Discussion of ACM Code of Ethics, intellectual property, data privacy, computer crime, and social impact of technology."),
+            Resource(course_id=courses_by_code["COSC409"].id, created_by_id=researcher.id, title="Data Protection & Privacy Laws Overview", resource_type="blog", difficulty="intermediate", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/what-is-data-privacy/", video_url="https://www.youtube.com/watch?v=iVoy4lMr6iI", body="Overview of GDPR, NDPR (Nigeria), data subject rights, consent requirements, and how they affect software development."),
+            Resource(course_id=courses_by_code["COSC413"].id, created_by_id=researcher.id, title="Parallel Programming with MPI & OpenMP", resource_type="video", difficulty="advanced", estimated_minutes=90, video_url="https://www.youtube.com/playlist?list=PLmJwSK7qduaULeFqBuowvMJkHjGUkcT5u", blog_url="https://www.geeksforgeeks.org/introduction-to-parallel-computing/", body="Introduction to parallel computing: MPI message passing, OpenMP shared memory, GPU computing concepts, and numerical methods."),
+            Resource(course_id=courses_by_code["COSC413"].id, created_by_id=researcher.id, title="High-Performance Computing Fundamentals", resource_type="blog", difficulty="advanced", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/what-is-parallel-computing/", video_url="https://www.youtube.com/watch?v=7BqBoeH0KpQ", body="HPC architecture overview: clusters, supercomputers, scientific visualization, and performance optimization techniques."),
+            Resource(course_id=courses_by_code["COSC416"].id, created_by_id=researcher.id, title="Simulation & Modeling - Full Course", resource_type="video", difficulty="advanced", estimated_minutes=90, video_url="https://www.youtube.com/playlist?list=PLbMVogVj5nJTHjJ31Hv1LLK8cCg1fJGDF", blog_url="https://www.geeksforgeeks.org/introduction-to-simulation-modeling/", body="Discrete-event simulation, random number generation, queuing theory, GPSS fundamentals, output analysis, and model validation."),
+            Resource(course_id=courses_by_code["COSC416"].id, created_by_id=researcher.id, title="Queuing Theory - Practical Applications", resource_type="blog", difficulty="advanced", estimated_minutes=15, blog_url="https://www.geeksforgeeks.org/queuing-theory/", video_url="https://www.youtube.com/watch?v=IPLx4LfQo5k", body="Understanding M/M/1 queues, Little's Law, utilization analysis, and how queuing theory applies to computer systems and networks."),
+            Resource(course_id=courses_by_code["SECS403"].id, created_by_id=researcher.id, title="Research Methods for CS Education", resource_type="video", difficulty="intermediate", estimated_minutes=60, video_url="https://www.youtube.com/watch?v=PDjS20kic54", blog_url="https://www.geeksforgeeks.org/research-methodology/", body="CS education research design: problem statement, literature review, theoretical frameworks, quasi-experimental design, and data analysis."),
+            Resource(course_id=courses_by_code["SECS403"].id, created_by_id=researcher.id, title="Academic Writing & Thesis Structure", resource_type="blog", difficulty="intermediate", estimated_minutes=20, blog_url="https://www.geeksforgeeks.org/how-to-write-a-research-paper/", video_url="https://www.youtube.com/watch?v=KNT6k-DRS8M", body="How to structure a research thesis: abstract, introduction, methodology, results, discussion, and references with formatting tips."),
         ]
         db.add_all(resources)
         db.flush()
 
     seed_quiz_banks(db, courses_by_code)
+    seed_surveys(db)
     db.commit()
+
+
+def seed_surveys(db: Session) -> None:
+    if db.scalar(select(func.count(Survey.id))) > 0:
+        return
+
+    pre = Survey(
+        title="Pre-Intervention Survey",
+        survey_type="presurvey",
+        description="Baseline assessment of your attitudes toward computer science, learning self-efficacy, and technology acceptance.",
+    )
+    post = Survey(
+        title="Post-Intervention Survey",
+        survey_type="postsurvey",
+        description="Follow-up assessment of how your attitudes, self-efficacy, and technology acceptance may have changed.",
+    )
+    db.add_all([pre, post])
+    db.flush()
+
+    pre_questions = [
+        ("I am confident I can learn computer science concepts.", "self_efficacy", 0),
+        ("I can solve challenging programming problems on my own.", "self_efficacy", 1),
+        ("I am confident explaining CS concepts to a classmate.", "self_efficacy", 2),
+        ("I enjoy learning about computer science.", "attitude", 3),
+        ("Computer science is relevant to my career goals.", "attitude", 4),
+        ("I find programming intellectually stimulating.", "attitude", 5),
+        ("CS education research can improve how we teach computing.", "attitude", 6),
+        ("I believe I can succeed in a computing-related career.", "self_efficacy", 7),
+        ("I prefer figuring out programming problems rather than being told the answer.", "attitude", 8),
+        ("Technology can make learning more engaging.", "tech_acceptance", 9),
+        ("I am comfortable using online platforms for learning.", "tech_acceptance", 10),
+        ("I would recommend a learning platform like this to peers.", "tech_acceptance", 11),
+    ]
+
+    post_questions = [
+        ("My confidence in learning CS concepts has improved.", "self_efficacy", 0),
+        ("I can now solve more challenging programming problems.", "self_efficacy", 1),
+        ("I feel more confident explaining CS concepts to others.", "self_efficacy", 2),
+        ("My interest in computer science has grown.", "attitude", 3),
+        ("I see more clearly how CS relates to my career.", "attitude", 4),
+        ("Programming challenges are more engaging than before.", "attitude", 5),
+        ("Participating in this research helped me appreciate CS education.", "attitude", 6),
+        ("I believe more strongly I can succeed in computing.", "self_efficacy", 7),
+        ("I am now more proactive in solving programming problems.", "attitude", 8),
+        ("Using this platform improved my learning experience.", "tech_acceptance", 9),
+        ("I found the online platform easy to use.", "tech_acceptance", 10),
+        ("I would like to continue using platforms like this for learning.", "tech_acceptance", 11),
+    ]
+
+    for prompt, dimension, order_idx in pre_questions:
+        db.add(SurveyQuestion(survey_id=pre.id, prompt=prompt, dimension=dimension, order_index=order_idx))
+
+    for prompt, dimension, order_idx in post_questions:
+        db.add(SurveyQuestion(survey_id=post.id, prompt=prompt, dimension=dimension, order_index=order_idx))
+
+    db.flush()
 
 
 def reset_stale_sqlite_schema() -> None:

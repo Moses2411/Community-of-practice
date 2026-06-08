@@ -7,5 +7,7 @@ passlib[bcrypt]
 python-multipart
 pydantic
 pydantic-settings
+python-dotenv
+slowapi
 psycopg2-binary
 email-validator

@@ -1,20 +1,30 @@
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
 
-from app.dependencies import ContentManagerUser, CurrentUser, SessionDep
+from app.dependencies import ContentManagerUser, CurrentUser, SessionDep, CONTENT_ROLES, require_course_membership
 from app.serializers import serialize_resource
 from app.utils import log_activity
-from model import Course, Resource, ResourceFeedback, ResourceView
+from model import Course, Membership, Resource, ResourceFeedback, ResourceView
 from schemas import ResourceCreate, ResourceFeedbackCreate
 
 router = APIRouter()
 
 
 @router.get("/api/resources")
-def list_resources(db: SessionDep, course_id: int | None = Query(default=None)):
+def list_resources(db: SessionDep, current_user: CurrentUser, course_id: int | None = Query(default=None)):
+    joined_course_ids = None
+    if current_user.role not in CONTENT_ROLES:
+        memberships = db.scalars(
+            select(Membership.course_id).where(Membership.user_id == current_user.id)
+        ).all()
+        joined_course_ids = set(memberships)
+        if course_id is not None and course_id not in joined_course_ids:
+            raise HTTPException(status_code=403, detail="You must join this course first.")
     query = select(Resource).order_by(Resource.created_at.desc())
     if course_id is not None:
         query = query.where(Resource.course_id == course_id)
+    elif joined_course_ids is not None:
+        query = query.where(Resource.course_id.in_(joined_course_ids))
     resources = db.scalars(query).all()
     return [serialize_resource(resource) for resource in resources]
 
@@ -55,6 +65,7 @@ def get_resource(
     resource = db.get(Resource, resource_id)
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found.")
+    require_course_membership(db, current_user, resource.course_id)
 
     view = ResourceView(resource_id=resource.id, user_id=current_user.id, seconds_spent=seconds_spent)
     db.add(view)
@@ -81,6 +92,7 @@ def submit_resource_feedback(
     resource = db.get(Resource, resource_id)
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found.")
+    require_course_membership(db, current_user, resource.course_id)
 
     feedback = ResourceFeedback(
         resource_id=resource_id,

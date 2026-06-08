@@ -315,3 +315,70 @@ class ActivityLog(Base):
     created_at = Column(DateTime, default=utcnow)
 
     user = relationship("User", back_populates="activity_logs")
+
+
+class Survey(Base):
+    __tablename__ = "surveys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    survey_type = Column(String(40), nullable=False)  # "presurvey" or "postsurvey"
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=utcnow)
+
+    questions = relationship("SurveyQuestion", back_populates="survey", cascade="all, delete-orphan")
+    responses = relationship("SurveyResponse", back_populates="survey", cascade="all, delete-orphan")
+
+
+class SurveyQuestion(Base):
+    __tablename__ = "survey_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id", ondelete="CASCADE"), nullable=False)
+    prompt = Column(Text, nullable=False)
+    dimension = Column(String(60), nullable=True)  # e.g., "self_efficacy", "attitude", "tech_acceptance"
+    order_index = Column(Integer, default=0)
+
+    survey = relationship("Survey", back_populates="questions")
+    answers = relationship("SurveyAnswer", back_populates="question", cascade="all, delete-orphan")
+
+
+class SurveyResponse(Base):
+    __tablename__ = "survey_responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    completed_at = Column(DateTime, default=utcnow)
+
+    survey = relationship("Survey", back_populates="responses")
+    user = relationship("User")
+    answers = relationship("SurveyAnswer", back_populates="response", cascade="all, delete-orphan")
+
+
+class SurveyAnswer(Base):
+    __tablename__ = "survey_answers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    response_id = Column(Integer, ForeignKey("survey_responses.id", ondelete="CASCADE"), nullable=False)
+    question_id = Column(Integer, ForeignKey("survey_questions.id", ondelete="CASCADE"), nullable=False)
+    rating = Column(Integer, nullable=False)  # Likert scale 1-5
+
+    response = relationship("SurveyResponse", back_populates="answers")
+    question = relationship("SurveyQuestion", back_populates="answers")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    message = Column(Text, nullable=False)
+    kind = Column(String(60), default="general")  # "reply", "helpful", "resolved", "system"
+    entity_type = Column(String(80), nullable=True)
+    entity_id = Column(Integer, nullable=True)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utcnow)
+
+    user = relationship("User")

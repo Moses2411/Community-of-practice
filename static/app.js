@@ -14,16 +14,21 @@ const state = {
   quizIndex: 0,
   quizAnswers: {},
   quizTimerInterval: null,
-  quizTimeLeft: 70,
+  quizTimeLeft: 45,
   quizResult: null,
   quizAttempts: [],
 };
 
 const authScreen = document.querySelector("#auth-screen");
+const landingView = document.querySelector("#landing-view");
+const loginView = document.querySelector("#login-view");
+const registerView = document.querySelector("#register-view");
+const loginAlert = document.querySelector("#login-alert");
+const registerAlert = document.querySelector("#register-alert");
 const appScreen = document.querySelector("#app-screen");
 const nav = document.querySelector("#nav");
 const content = document.querySelector("#content");
-const message = document.querySelector("#message");
+const toast = document.querySelector("#toast");
 const viewTitle = document.querySelector("#view-title");
 const viewKicker = document.querySelector("#view-kicker");
 const userName = document.querySelector("#user-name");
@@ -31,11 +36,14 @@ const userName = document.querySelector("#user-name");
 const navItems = [
   ["overview", "Overview"],
   ["courses", "Courses"],
+  ["mycourses", "My Courses"],
   ["resources", "Resources"],
   ["discussions", "Discussions"],
   ["quizzes", "Quizzes"],
+  ["surveys", "Surveys"],
   ["reflections", "Reflections"],
   ["feedback", "Feedback"],
+  ["teaching", "Teaching"],
   ["research", "Research"],
 ];
 
@@ -45,6 +53,10 @@ function canResearch() {
 
 function canManageContent() {
   return state.user && ["facilitator", "researcher", "admin"].includes(state.user.role);
+}
+
+function isControlGroup() {
+  return state.user && state.user.study_group === "control" && !canManageContent();
 }
 
 function escapeHtml(value) {
@@ -57,20 +69,60 @@ function escapeHtml(value) {
 }
 
 function showMessage(text, type = "info") {
-  message.textContent = text;
-  message.className = `message ${type === "error" ? "error" : ""}`;
-  window.setTimeout(() => message.classList.add("hidden"), 4500);
+  toast.textContent = text;
+  toast.className = `toast ${type}`;
+  toast.classList.remove("hidden");
+  window.setTimeout(() => toast.classList.add("hidden"), 4500);
 }
 
-function showAuth() {
+function showLanding() {
   authScreen.classList.remove("hidden");
   appScreen.classList.add("hidden");
+  landingView.classList.remove("hidden");
+  loginView.classList.add("hidden");
+  registerView.classList.add("hidden");
+}
+
+function showLoginForm() {
+  landingView.classList.add("hidden");
+  loginView.classList.remove("hidden");
+  registerView.classList.add("hidden");
+  clearFormErrors("login");
+}
+
+function showRegisterForm() {
+  landingView.classList.add("hidden");
+  registerView.classList.remove("hidden");
+  loginView.classList.add("hidden");
+  clearFormErrors("register");
 }
 
 function showApp() {
   authScreen.classList.add("hidden");
   appScreen.classList.remove("hidden");
-  userName.textContent = `${state.user.full_name} (${state.user.research_id})`;
+  userName.textContent = `${state.user.full_name} (${state.user.research_id}) · ${state.user.study_group}`;
+}
+
+function clearFormErrors(form) {
+  const prefix = form === "login" ? "login" : "register";
+  const alert = document.querySelector(`#${prefix}-alert`);
+  if (alert) { alert.classList.add("hidden"); alert.textContent = ""; }
+  document.querySelectorAll(`#${prefix}-view .field-error`).forEach(el => { el.textContent = ""; });
+  document.querySelectorAll(`#${prefix}-view input.error, #${prefix}-view select.error, #${prefix}-view textarea.error`).forEach(el => { el.classList.remove("error"); });
+}
+
+function showFieldError(form, field, msg) {
+  const prefix = form === "login" ? "login" : "register";
+  const span = document.querySelector(`#${prefix}-view .field-error[data-field="${field}"]`);
+  if (span) { span.textContent = msg; }
+  const input = document.querySelector(`#${prefix}-view [name="${field}"]`);
+  if (input) { input.classList.add("error"); }
+}
+
+function showFormAlert(form, msg) {
+  const prefix = form === "login" ? "login" : "register";
+  const alert = document.querySelector(`#${prefix}-alert`);
+  if (alert) { alert.textContent = msg; alert.classList.remove("hidden"); }
 }
 
 async function api(path, options = {}) {
@@ -85,13 +137,29 @@ async function api(path, options = {}) {
   const response = await fetch(path, { ...options, headers });
   if (!response.ok) {
     let detail = response.statusText;
+    let fields = {};
     try {
       const error = await response.json();
-      detail = error.detail || detail;
+      if (Array.isArray(error.detail)) {
+        for (const err of error.detail) {
+          const fieldName = err.loc?.[err.loc.length - 1] || "body";
+          const msg = err.msg || "Invalid value";
+          if (fieldName !== "body") {
+            fields[fieldName] = msg;
+          } else {
+            detail = msg;
+          }
+        }
+      } else {
+        detail = error.detail || detail;
+      }
     } catch {
       detail = response.statusText;
     }
-    throw new Error(detail);
+    const err = new Error(detail);
+    err.fields = fields;
+    err.status = response.status;
+    throw err;
   }
 
   const contentType = response.headers.get("content-type") || "";
@@ -115,7 +183,7 @@ function clearSession() {
   state.token = null;
   state.user = null;
   localStorage.removeItem("cop_token");
-  showAuth();
+  showLanding();
 }
 
 function setTitle(title, kicker = "Workspace") {
@@ -125,7 +193,12 @@ function setTitle(title, kicker = "Workspace") {
 
 function renderNav() {
   nav.innerHTML = navItems
-    .filter(([id]) => id !== "research" || canResearch())
+    .filter(([id]) => {
+      if (id === "research" && !canResearch()) return false;
+      if (id === "teaching" && !canManageContent()) return false;
+      if (isControlGroup() && ["quizzes", "discussions"].includes(id)) return false;
+      return true;
+    })
     .map(
       ([id, label]) => `
         <button class="nav-btn ${state.view === id ? "active" : ""}" data-view="${id}" type="button">
@@ -137,12 +210,18 @@ function renderNav() {
 }
 
 async function loadCoreData() {
-  const [courses, resources, discussions, quizzes] = await Promise.all([
+  const fetchers = [
     api("/api/courses"),
     api("/api/resources"),
-    api("/api/discussions?include_replies=false"),
-    api("/api/quizzes"),
-  ]);
+  ];
+  if (!isControlGroup()) {
+    fetchers.push(api("/api/discussions?include_replies=false"));
+    fetchers.push(api("/api/quizzes"));
+  } else {
+    fetchers.push(Promise.resolve([]));
+    fetchers.push(Promise.resolve([]));
+  }
+  const [courses, resources, discussions, quizzes] = await Promise.all(fetchers);
   state.courses = courses;
   state.resources = resources;
   state.discussions = discussions;
@@ -151,6 +230,19 @@ async function loadCoreData() {
 
 function courseOptions(selected = "") {
   return state.courses
+    .map(
+      (course) => `
+        <option value="${course.id}" ${String(selected) === String(course.id) ? "selected" : ""}>
+          ${escapeHtml(course.code)} - ${escapeHtml(course.title)}
+        </option>
+      `
+    )
+    .join("");
+}
+
+function joinedCourseOptions(selected = "") {
+  const joined = state.courses.filter((c) => c.is_joined);
+  return joined
     .map(
       (course) => `
         <option value="${course.id}" ${String(selected) === String(course.id) ? "selected" : ""}>
@@ -190,7 +282,7 @@ function clearQuizTimer() {
 
 function startQuizTimer() {
   clearQuizTimer();
-  state.quizTimeLeft = 70;
+  state.quizTimeLeft = 40;
   updateTimerDisplay();
   state.quizTimerInterval = setInterval(() => {
     state.quizTimeLeft -= 1;
@@ -207,7 +299,7 @@ function updateTimerDisplay() {
   if (!bar) return;
   const fill = bar.querySelector(".timer-fill");
   const text = bar.querySelector(".timer-text");
-  if (fill) fill.style.width = `${(state.quizTimeLeft / 70) * 100}%`;
+  if (fill) fill.style.width = `${(state.quizTimeLeft / 45) * 100}%`;
   if (text) text.textContent = `${state.quizTimeLeft}s`;
   bar.classList.toggle("urgent", state.quizTimeLeft <= 10);
 }
@@ -256,15 +348,15 @@ function renderOverview() {
   setTitle("Overview", "Learning and engagement");
   const courseCount = state.courses.length;
   const resourceCount = state.resources.length;
-  const discussionCount = state.discussions.length;
-  const quizCount = state.quizzes.length;
+  const discussionCount = isControlGroup() ? 0 : state.discussions.length;
+  const quizCount = isControlGroup() ? 0 : state.quizzes.length;
 
   content.innerHTML = `
     <section class="grid">
       ${metric("Courses", courseCount)}
       ${metric("Learning Resources", resourceCount)}
-      ${metric("Discussions", discussionCount)}
-      ${metric("Assessments", quizCount)}
+      ${isControlGroup() ? "" : metric("Discussions", discussionCount)}
+      ${isControlGroup() ? "" : metric("Assessments", quizCount)}
       ${metric("Research ID", state.user.research_id, "blue")}
       ${metric("Study Group", state.user.study_group)}
     </section>
@@ -348,6 +440,185 @@ function renderCourses() {
   `;
 }
 
+function renderMyCourses() {
+  setTitle("My Courses", "Your learning spaces");
+  const joined = state.courses.filter((c) => c.is_joined);
+
+  if (!joined.length) {
+    content.innerHTML = `
+      <section class="stack">
+        <div class="empty">You have not joined any courses yet. Go to <a href="#" data-nav="courses">Courses</a> to browse and join courses.</div>
+      </section>
+    `;
+    return;
+  }
+
+  content.innerHTML = `<section class="stack"><div class="empty">Loading progress...</div></section>`;
+
+  loadMyCoursesProgress(joined);
+}
+
+async function loadMyCoursesProgress(joined) {
+  const progressMap = {};
+  const promises = joined.map(async (course) => {
+    try {
+      progressMap[course.id] = await api(`/api/courses/${course.id}/progress`);
+    } catch {
+      progressMap[course.id] = null;
+    }
+  });
+  await Promise.all(promises);
+
+  content.innerHTML = joined
+    .map((course) => {
+      const courseResources = state.resources.filter((r) => String(r.course_id) === String(course.id));
+      const courseQuizzes = state.quizzes.filter((q) => String(q.course_id) === String(course.id));
+      const courseDiscussions = state.discussions.filter((d) => String(d.course_id) === String(course.id));
+      const progress = progressMap[course.id] || {};
+
+      const resourcePct = progress.resource_count ? Math.round((progress.resources_viewed || 0) / progress.resource_count * 100) : 0;
+      const quizPct = progress.quiz_count ? Math.round((progress.quizzes_taken || 0) / progress.quiz_count * 100) : 0;
+      const quizAvg = progress.quiz_average_percentage != null ? `${progress.quiz_average_percentage}% avg` : "";
+
+      return `
+        <article class="card stack">
+          <div class="card-header">
+            <div>
+              <div class="badge-row">
+                <span class="badge">${escapeHtml(course.code)}</span>
+                <span class="badge blue">${course.member_count} members</span>
+                <span class="badge">${course.resource_count} resources</span>
+              </div>
+              <h2>${escapeHtml(course.title)}</h2>
+              <p class="muted">${escapeHtml(course.description)}</p>
+            </div>
+          </div>
+
+          <div class="progress-row">
+            <div class="progress-item" title="Resources viewed">
+              <span class="muted">Resources</span>
+              <div class="progress-bar"><div class="progress-fill" style="width:${resourcePct}%"></div></div>
+              <small>${progress.resources_viewed || 0}/${progress.resource_count || 0}</small>
+            </div>
+            ${
+              !isControlGroup()
+                ? `
+            <div class="progress-item" title="Quizzes taken">
+              <span class="muted">Quizzes</span>
+              <div class="progress-bar"><div class="progress-fill gold" style="width:${quizPct}%"></div></div>
+              <small>${progress.quizzes_taken || 0}/${progress.quiz_count || 0} ${quizAvg}</small>
+            </div>
+            <div class="progress-item" title="Discussion participation">
+              <span class="muted">Discussions</span>
+              <div class="progress-bar"><div class="progress-fill blue" style="width:100%"></div></div>
+              <small>${progress.discussions_participated || 0} posts</small>
+            </div>
+                `
+                : ""
+            }
+          </div>
+
+          <details open>
+            <summary><strong>Resources</strong> <span class="badge">${courseResources.length}</span></summary>
+            <div class="list" style="margin-top:10px">
+              ${
+                courseResources.length
+                  ? courseResources
+                      .map(
+                        (r) => `
+                          <div class="card compact">
+                            <div class="card-header">
+                              <div>
+                                <div class="badge-row">
+                                  <span class="badge">${escapeHtml(r.resource_type)}</span>
+                                  <span class="badge gold">${escapeHtml(r.difficulty)}</span>
+                                  <span class="badge">${r.estimated_minutes} min</span>
+                                </div>
+                                <h3>${escapeHtml(r.title)}</h3>
+                                <p class="muted">${escapeHtml(r.body || r.url || "")}</p>
+                              </div>
+                              <button data-action="view-resource" data-id="${r.id}" type="button">Record View</button>
+                            </div>
+                          </div>
+                        `
+                      )
+                      .join("")
+                  : `<div class="empty">No resources yet.</div>`
+              }
+            </div>
+          </details>
+
+          ${
+            !isControlGroup()
+              ? `
+          <details open>
+            <summary><strong>Quizzes</strong> <span class="badge">${courseQuizzes.length}</span></summary>
+            <div class="list" style="margin-top:10px">
+              ${
+                courseQuizzes.length
+                  ? courseQuizzes
+                      .map(
+                        (q) => `
+                          <div class="card compact">
+                            <div class="card-header">
+                              <div>
+                                <div class="badge-row">
+                                  <span class="badge gold">${escapeHtml(q.quiz_type)}</span>
+                                  <span class="badge">${q.question_count} questions</span>
+                                  <span class="badge blue">${escapeHtml(q.round_size || q.question_count)} per round</span>
+                                </div>
+                                <h3>${escapeHtml(q.title)}</h3>
+                                <p class="muted">${escapeHtml(q.description || "")}</p>
+                              </div>
+                              <button data-action="open-quiz" data-id="${q.id}" type="button">Open</button>
+                            </div>
+                          </div>
+                        `
+                      )
+                      .join("")
+                  : `<div class="empty">No quizzes yet.</div>`
+              }
+            </div>
+          </details>
+
+          <details open>
+            <summary><strong>Discussions</strong> <span class="badge">${courseDiscussions.length}</span></summary>
+            <div class="list" style="margin-top:10px">
+              ${
+                courseDiscussions.length
+                  ? courseDiscussions
+                      .map(
+                        (t) => `
+                          <div class="card compact">
+                            <div class="card-header">
+                              <div>
+                                <div class="badge-row">
+                                  <span class="badge">${t.reply_count} replies</span>
+                                  ${t.is_resolved ? `<span class="badge gold">resolved</span>` : `<span class="badge">open</span>`}
+                                </div>
+                                <h3>${escapeHtml(t.title)}</h3>
+                                <p>${escapeHtml(t.body)}</p>
+                                <p class="muted">${escapeHtml(t.author_name || "Student")} ${t.tags ? `· ${escapeHtml(t.tags)}` : ""}</p>
+                              </div>
+                              <button class="secondary" data-action="load-thread" data-id="${t.id}" type="button">Open</button>
+                            </div>
+                          </div>
+                        `
+                      )
+                      .join("")
+                  : `<div class="empty">No discussions yet.</div>`
+              }
+            </div>
+          </details>
+              `
+              : ""
+          }
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function renderResources() {
   setTitle("Resources", "Learning materials");
   const filtered = state.selectedCourse
@@ -358,7 +629,7 @@ function renderResources() {
     <section class="toolbar">
       <select id="course-filter">
         <option value="">All courses</option>
-        ${courseOptions(state.selectedCourse)}
+        ${canManageContent() ? courseOptions(state.selectedCourse) : joinedCourseOptions(state.selectedCourse)}
       </select>
     </section>
 
@@ -488,7 +759,7 @@ function renderDiscussions() {
 
       <form class="panel form-stack" data-form="create-discussion">
         <h2>Start Discussion</h2>
-        <label>Course <select name="course_id">${courseOptions()}</select></label>
+        <label>Course <select name="course_id">${canManageContent() ? courseOptions() : joinedCourseOptions()}</select></label>
         <label>Title <input name="title" required /></label>
         <label>Question or Idea <textarea name="body" rows="5" required></textarea></label>
         <label>Tags <input name="tags" placeholder="python, debugging, sql" /></label>
@@ -562,7 +833,7 @@ function renderQuizActive() {
         <span class="muted">Question ${current} of ${total}</span>
         <div id="quiz-timer" class="timer-bar">
           <div class="timer-fill" style="width:100%"></div>
-          <span class="timer-text">70s</span>
+          <span class="timer-text">45s</span>
         </div>
       </div>
       <h2>${escapeHtml(question.prompt)}</h2>
@@ -687,6 +958,60 @@ function renderReflections() {
   `;
 }
 
+async function renderSurveys() {
+  setTitle("Surveys", "Research instruments");
+  const surveys = await api("/api/surveys");
+  content.innerHTML = `
+    <section class="list">
+      ${surveys
+        .map(
+          (s) => `
+            <article class="card">
+              <div class="card-header">
+                <div>
+                  <div class="badge-row">
+                    <span class="badge gold">${escapeHtml(s.survey_type)}</span>
+                    <span class="badge">${s.question_count} questions</span>
+                  </div>
+                  <h2>${escapeHtml(s.title)}</h2>
+                  <p class="muted">${escapeHtml(s.description || "")}</p>
+                </div>
+                <button data-action="open-survey" data-id="${s.id}" type="button">${s.user_has_responded ? "View" : "Start"}</button>
+              </div>
+            </article>
+          `
+        )
+        .join("")}
+    </section>
+  `;
+}
+
+function renderSurveyActive(survey) {
+  setTitle(survey.title, "Research instrument");
+  content.innerHTML = `
+    <form class="panel form-stack" data-form="survey-submit" data-id="${survey.id}">
+      ${(survey.questions || [])
+        .map(
+          (q, idx) => `
+            <label>
+              <strong>${idx + 1}. ${escapeHtml(q.prompt)}</strong>
+              <select name="${q.id}" required>
+                <option value="">Select rating (1-5)</option>
+                <option value="5">5 - Strongly Agree</option>
+                <option value="4">4 - Agree</option>
+                <option value="3">3 - Neutral</option>
+                <option value="2">2 - Disagree</option>
+                <option value="1">1 - Strongly Disagree</option>
+              </select>
+            </label>
+          `
+        )
+        .join("")}
+      <button type="submit">Submit Survey</button>
+    </form>
+  `;
+}
+
 function renderFeedback() {
   setTitle("Feedback", "Platform experience");
   content.innerHTML = `
@@ -714,6 +1039,105 @@ function renderFeedback() {
       <label>Comment <textarea name="comment" rows="5"></textarea></label>
       <button type="submit">Submit Feedback</button>
     </form>
+  `;
+}
+
+async function renderTeaching() {
+  setTitle("Teaching", "Instructor dashboard");
+  content.innerHTML = `<div class="empty">Loading instructor dashboard...</div>`;
+  const courses = await api("/api/instructor/courses");
+
+  content.innerHTML = `
+    <section class="list">
+      ${courses
+        .map(
+          (c) => `
+            <article class="card">
+              <div class="card-header">
+                <div>
+                  <div class="badge-row">
+                    <span class="badge">${escapeHtml(c.code)}</span>
+                    <span class="badge blue">${c.member_count} students</span>
+                    <span class="badge">${c.resource_count} resources</span>
+                    <span class="badge gold">${c.quiz_count} quizzes</span>
+                    <span class="badge">${c.discussion_count} discussions</span>
+                  </div>
+                  <h2>${escapeHtml(c.title)}</h2>
+                </div>
+                <button data-action="course-stats" data-id="${c.id}" type="button">Stats</button>
+              </div>
+            </article>
+          `
+        )
+        .join("")}
+    </section>
+  `;
+}
+
+function renderCourseStats(stats) {
+  setTitle(`${stats.course_code} Stats`, "Instructor dashboard");
+  content.innerHTML = `
+    <section class="stack">
+      <article class="panel stack">
+        <h2>${escapeHtml(stats.course_title)}</h2>
+        <div class="grid">
+          ${metric("Students", stats.member_count)}
+          ${metric("Experimental", stats.experimental_count, "blue")}
+          ${metric("Control", stats.control_count)}
+          ${metric("Quiz Attempts", stats.quiz_attempts)}
+          ${metric("Avg Quiz %", stats.quiz_average_percentage != null ? stats.quiz_average_percentage + "%" : "N/A")}
+          ${metric("Resource Views", stats.resource_view_count)}
+          ${metric("Threads", stats.thread_count)}
+          ${metric("Replies", stats.reply_count)}
+        </div>
+        ${
+          stats.quiz_breakdown && Object.keys(stats.quiz_breakdown).length
+            ? `
+              <div class="badge-row">
+                ${Object.entries(stats.quiz_breakdown)
+                  .map(([k, v]) => `<span class="badge gold">${escapeHtml(k)}: ${v}% avg</span>`)
+                  .join("")}
+              </div>
+            `
+            : ""
+        }
+      </article>
+
+      ${
+        stats.recent_attempts && stats.recent_attempts.length
+          ? `
+            <article class="panel stack">
+              <h2>Recent Quiz Attempts</h2>
+              <div class="list">
+                ${stats.recent_attempts
+                  .map(
+                    (a) => `
+                      <div class="card compact">
+                        <div class="card-header">
+                          <div>
+                            <div class="badge-row">
+                              <span class="badge blue">${escapeHtml(a.research_id)}</span>
+                              <span class="badge">${escapeHtml(a.user_name)}</span>
+                              <span class="badge gold">${escapeHtml(a.quiz_type)}</span>
+                            </div>
+                            <p><strong>${escapeHtml(a.quiz_title)}</strong></p>
+                            <p class="muted">Score: ${a.score}/${a.total_points} (${a.percentage}%) &middot; Study group: ${escapeHtml(a.study_group)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </article>
+          `
+          : ""
+      }
+
+      <div class="toolbar">
+        <button data-action="back-to-teaching" type="button">Back to Courses</button>
+      </div>
+    </section>
   `;
 }
 
@@ -772,11 +1196,14 @@ async function render() {
   renderNav();
   if (state.view === "overview") renderOverview();
   if (state.view === "courses") renderCourses();
+  if (state.view === "mycourses") renderMyCourses();
   if (state.view === "resources") renderResources();
   if (state.view === "discussions") renderDiscussions();
   if (state.view === "quizzes") renderQuizzes();
+  if (state.view === "surveys") await renderSurveys();
   if (state.view === "reflections") renderReflections();
   if (state.view === "feedback") renderFeedback();
+  if (state.view === "teaching") await renderTeaching();
   if (state.view === "research") await renderResearch();
 }
 
@@ -795,6 +1222,7 @@ async function setView(view) {
 
 document.querySelector("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  clearFormErrors("login");
   try {
     const payload = formData(event.currentTarget);
     const data = await api("/api/auth/login", { method: "POST", body: JSON.stringify(payload) });
@@ -803,12 +1231,19 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
     await refreshAndRender();
     showMessage("Signed in.");
   } catch (error) {
-    showMessage(error.message, "error");
+    if (error.fields && Object.keys(error.fields).length) {
+      for (const [field, msg] of Object.entries(error.fields)) {
+        showFieldError("login", field, msg);
+      }
+    } else {
+      showFormAlert("login", error.message || "Invalid email or password.");
+    }
   }
 });
 
 document.querySelector("#register-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  clearFormErrors("register");
   try {
     const payload = formData(event.currentTarget);
     payload.accepted_research_consent = event.currentTarget.accepted_research_consent.checked;
@@ -818,11 +1253,75 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     await refreshAndRender();
     showMessage("Account created.");
   } catch (error) {
-    showMessage(error.message, "error");
+    if (error.fields && Object.keys(error.fields).length) {
+      for (const [field, msg] of Object.entries(error.fields)) {
+        showFieldError("register", field, msg);
+      }
+    } else {
+      showFormAlert("register", error.message || "Registration failed.");
+    }
   }
 });
 
 document.querySelector("#logout-btn").addEventListener("click", clearSession);
+
+let notificationPollInterval = null;
+
+async function updateNotificationBadge() {
+  try {
+    const data = await api("/api/notifications");
+    const badge = document.querySelector("#notif-count");
+    if (data.unread_count > 0) {
+      badge.textContent = data.unread_count > 99 ? "99+" : data.unread_count;
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
+  } catch {}
+}
+
+document.querySelector("#notification-btn").addEventListener("click", async () => {
+  try {
+    const data = await api("/api/notifications");
+    content.innerHTML = `
+      <section class="stack">
+        <div class="toolbar">
+          <h2 style="margin:0">Notifications</h2>
+          <button data-action="mark-all-read" type="button" class="secondary">Mark All Read</button>
+        </div>
+        <div class="list">
+          ${
+            data.items.length
+              ? data.items
+                  .map(
+                    (n) => `
+                      <div class="card compact ${n.is_read ? "" : "unread"}">
+                        <div class="card-header">
+                          <div>
+                            <p>${escapeHtml(n.message)}</p>
+                            <p class="muted">${new Date(n.created_at).toLocaleString()}</p>
+                          </div>
+                          ${!n.is_read ? `<button data-action="mark-read" data-id="${n.id}" type="button" class="secondary">Read</button>` : ""}
+                        </div>
+                      </div>
+                    `
+                  )
+                  .join("")
+              : `<div class="empty">No notifications yet.</div>`
+          }
+        </div>
+      </section>
+    `;
+  } catch {
+    showMessage("Could not load notifications.", "error");
+  }
+});
+
+async function startNotificationPolling() {
+  if (notificationPollInterval) clearInterval(notificationPollInterval);
+  await updateNotificationBadge();
+  notificationPollInterval = setInterval(updateNotificationBadge, 30000);
+}
 
 nav.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-view]");
@@ -846,7 +1345,23 @@ content.addEventListener("change", async (event) => {
   }
 });
 
+authScreen.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-action]");
+  if (!button) return;
+  const action = button.dataset.action;
+  if (action === "show-login") { showLoginForm(); return; }
+  if (action === "show-register") { showRegisterForm(); return; }
+  if (action === "back-to-landing") { showLanding(); return; }
+});
+
 content.addEventListener("click", async (event) => {
+  const navLink = event.target.closest("[data-nav]");
+  if (navLink) {
+    event.preventDefault();
+    await setView(navLink.dataset.nav);
+    return;
+  }
+
   const button = event.target.closest("[data-action]");
   if (!button) return;
   const action = button.dataset.action;
@@ -862,32 +1377,34 @@ content.addEventListener("click", async (event) => {
     if (action === "view-resource") {
       await api(`/api/resources/${id}?seconds_spent=30`);
       await loadCoreData();
-      renderResources();
+      render();
       showMessage("Resource view recorded.");
     }
 
     if (action === "load-thread") {
       const discussions = await api("/api/discussions");
       state.discussions = discussions;
-      renderDiscussions();
+      render();
     }
 
     if (action === "helpful") {
       await api(`/api/replies/${id}/helpful`, { method: "POST" });
       const discussions = await api("/api/discussions");
       state.discussions = discussions;
-      renderDiscussions();
+      render();
       showMessage("Helpful vote recorded.");
     }
 
     if (action === "open-quiz") {
       const quiz = await api(`/api/quizzes/${id}`);
+      state.view = "quizzes";
       state.activeQuiz = quiz;
       state.quizQuestions = quiz.questions || [];
       state.quizIndex = 0;
       state.quizAnswers = {};
       state.quizPhase = "active";
       state.quizStartedAt = Date.now();
+      renderNav();
       renderQuizzes();
     }
 
@@ -911,12 +1428,40 @@ content.addEventListener("click", async (event) => {
 
     if (action === "back-to-quizzes") {
       resetQuizState();
+      state.view = "quizzes";
       await loadCoreData();
+      renderNav();
       renderQuizList();
     }
 
     if (action === "export") {
       await downloadDataset(id);
+    }
+
+    if (action === "open-survey") {
+      const survey = await api(`/api/surveys/${id}`);
+      renderSurveyActive(survey);
+    }
+
+    if (action === "course-stats") {
+      const stats = await api(`/api/instructor/courses/${id}/stats`);
+      renderCourseStats(stats);
+    }
+
+    if (action === "back-to-teaching") {
+      await setView("teaching");
+    }
+
+    if (action === "mark-read") {
+      await api(`/api/notifications/${id}/read`, { method: "POST" });
+      await updateNotificationBadge();
+      document.querySelector("#notification-btn").click();
+    }
+
+    if (action === "mark-all-read") {
+      await api("/api/notifications/read-all", { method: "POST" });
+      await updateNotificationBadge();
+      document.querySelector("#notification-btn").click();
     }
   } catch (error) {
     showMessage(error.message, "error");
@@ -964,7 +1509,7 @@ content.addEventListener("submit", async (event) => {
       await api("/api/discussions", { method: "POST", body: JSON.stringify(payload) });
       form.reset();
       state.discussions = await api("/api/discussions");
-      renderDiscussions();
+      render();
       showMessage("Discussion posted.");
     }
 
@@ -975,7 +1520,7 @@ content.addEventListener("submit", async (event) => {
       });
       form.reset();
       state.discussions = await api("/api/discussions");
-      renderDiscussions();
+      render();
       showMessage("Reply posted.");
     }
 
@@ -1005,6 +1550,26 @@ content.addEventListener("submit", async (event) => {
       form.reset();
       await renderResearch();
       showMessage("Academic record saved.");
+    }
+
+    if (type === "survey-submit") {
+      const surveyId = Number(form.dataset.id);
+      const answers = [];
+      let allAnswered = true;
+      for (const el of form.querySelectorAll("select")) {
+        if (!el.value) { allAnswered = false; break; }
+        answers.push({ question_id: Number(el.name), rating: Number(el.value) });
+      }
+      if (!allAnswered) {
+        showMessage("Please answer all questions.", "error");
+        return;
+      }
+      await api(`/api/surveys/${surveyId}/submit`, {
+        method: "POST",
+        body: JSON.stringify({ answers }),
+      });
+      await setView("surveys");
+      showMessage("Survey submitted. Thank you.");
     }
   } catch (error) {
     showMessage(error.message, "error");
@@ -1073,13 +1638,14 @@ async function downloadDataset(dataset) {
 
 async function boot() {
   if (!state.token) {
-    showAuth();
+    showLanding();
     return;
   }
   try {
     state.user = await api("/api/me");
     showApp();
     await refreshAndRender();
+    startNotificationPolling();
   } catch {
     clearSession();
   }

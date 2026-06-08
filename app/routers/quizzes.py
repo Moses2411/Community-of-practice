@@ -1,10 +1,10 @@
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
-from app.dependencies import CONTENT_ROLES, ContentManagerUser, CurrentUser, RESEARCH_ROLES, SessionDep
+from app.dependencies import CONTENT_ROLES, ContentManagerUser, CurrentUser, RESEARCH_ROLES, SessionDep, require_course_membership, require_experimental_group
 from app.serializers import quiz_attempt_response, serialize_quiz
 from app.utils import log_activity, select_round_questions
-from model import Course, Quiz, QuizAnswer, QuizAttempt, QuizQuestion
+from model import Course, Membership, Quiz, QuizAnswer, QuizAttempt, QuizQuestion
 from schemas import QuizCreate, QuizQuestionCreate, QuizSubmit
 
 router = APIRouter()
@@ -13,12 +13,24 @@ router = APIRouter()
 @router.get("/api/quizzes")
 def list_quizzes(
     db: SessionDep,
+    current_user: CurrentUser,
     course_id: int | None = Query(default=None),
     quiz_type: str | None = Query(default=None),
 ):
+    require_experimental_group(current_user)
+    joined_course_ids = None
+    if current_user.role not in CONTENT_ROLES:
+        memberships = db.scalars(
+            select(Membership.course_id).where(Membership.user_id == current_user.id)
+        ).all()
+        joined_course_ids = set(memberships)
+        if course_id is not None and course_id not in joined_course_ids:
+            raise HTTPException(status_code=403, detail="You must join this course first.")
     query = select(Quiz).order_by(Quiz.created_at.desc())
     if course_id is not None:
         query = query.where(Quiz.course_id == course_id)
+    elif joined_course_ids is not None:
+        query = query.where(Quiz.course_id.in_(joined_course_ids))
     if quiz_type is not None:
         query = query.where(Quiz.quiz_type == quiz_type)
     quizzes = db.scalars(query).all()
@@ -70,9 +82,11 @@ def create_quiz_question(quiz_id: int, payload: QuizQuestionCreate, db: SessionD
 
 @router.get("/api/quizzes/{quiz_id}")
 def get_quiz(quiz_id: int, db: SessionDep, current_user: CurrentUser):
+    require_experimental_group(current_user)
     quiz = db.get(Quiz, quiz_id)
     if quiz is None:
         raise HTTPException(status_code=404, detail="Quiz not found.")
+    require_course_membership(db, current_user, quiz.course_id)
     include_answers = current_user.role in CONTENT_ROLES
     round_questions = select_round_questions(db, quiz, current_user)
     log_activity(db, current_user, "quiz_viewed", "quiz", quiz_id, {"quiz_type": quiz.quiz_type})
@@ -82,9 +96,11 @@ def get_quiz(quiz_id: int, db: SessionDep, current_user: CurrentUser):
 
 @router.post("/api/quizzes/{quiz_id}/submit")
 def submit_quiz(quiz_id: int, payload: QuizSubmit, db: SessionDep, current_user: CurrentUser):
+    require_experimental_group(current_user)
     quiz = db.get(Quiz, quiz_id)
     if quiz is None:
         raise HTTPException(status_code=404, detail="Quiz not found.")
+    require_course_membership(db, current_user, quiz.course_id)
     if not quiz.questions:
         raise HTTPException(status_code=400, detail="This quiz has no questions yet.")
 

@@ -284,3 +284,44 @@ class DashboardOut(BaseModel):
     average_quiz_percentage: float
     average_engagement_rating: float
     activity_events: int
+
+
+# ---- Survey schemas ----
+class SurveyAnswerSubmit(BaseModel):
+    question_id: int
+    rating: int = Field(ge=1, le=5)
+
+
+class SurveySubmit(BaseModel):
+    answers: list[SurveyAnswerSubmit]
+
+
+class SurveyQuestionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    prompt: str
+    dimension: str | None = None
+    order_index: int = 0
+
+
+class SurveyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    survey_type: str
+    description: str | None
+    is_active: bool
+    question_count: int = 0
+    questions: list[SurveyQuestionOut] = []
+
+
+class SurveyResponseOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    survey_id: int
+    user_id: int
+    completed_at: datetime
+    dimension_scores: dict | None = None
