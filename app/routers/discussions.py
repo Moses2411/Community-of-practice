@@ -17,7 +17,7 @@ def list_discussions(
     db: SessionDep,
     current_user: CurrentUser,
     course_id: int | None = Query(default=None),
-    include_replies: bool = Query(default=True),
+    include_replies: bool = Query(default=False),
 ):
     require_experimental_group(current_user)
     joined_course_ids = None
@@ -35,6 +35,16 @@ def list_discussions(
         query = query.where(DiscussionThread.course_id.in_(joined_course_ids))
     threads = db.scalars(query).all()
     return [serialize_thread(thread, include_replies=include_replies) for thread in threads]
+
+
+@router.get("/api/discussions/{thread_id}")
+def get_discussion(thread_id: int, db: SessionDep, current_user: CurrentUser):
+    thread = db.get(DiscussionThread, thread_id)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Discussion not found.")
+    require_experimental_group(current_user)
+    require_course_membership(db, current_user, thread.course_id)
+    return serialize_thread(thread, include_replies=True)
 
 
 @router.post("/api/discussions")

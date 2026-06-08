@@ -210,10 +210,7 @@ function renderNav() {
 }
 
 async function loadCoreData() {
-  const fetchers = [
-    api("/api/courses"),
-    api("/api/resources"),
-  ];
+  const fetchers = [api("/api/courses")];
   if (!isControlGroup()) {
     fetchers.push(api("/api/discussions?include_replies=false"));
     fetchers.push(api("/api/quizzes"));
@@ -221,7 +218,8 @@ async function loadCoreData() {
     fetchers.push(Promise.resolve([]));
     fetchers.push(Promise.resolve([]));
   }
-  const [courses, resources, discussions, quizzes] = await Promise.all(fetchers);
+  const [courses, discussions, quizzes] = await Promise.all(fetchers);
+  const resources = await api("/api/resources");
   state.courses = courses;
   state.resources = resources;
   state.discussions = discussions;
@@ -1212,6 +1210,18 @@ async function refreshAndRender() {
   await render();
 }
 
+async function refreshCourses() {
+  state.courses = await api("/api/courses");
+}
+
+async function refreshDiscussions() {
+  state.discussions = await api("/api/discussions?include_replies=false");
+}
+
+async function refreshQuizzes() {
+  state.quizzes = await api("/api/quizzes");
+}
+
 async function setView(view) {
   state.view = view;
   if (view !== "quizzes") {
@@ -1370,27 +1380,39 @@ content.addEventListener("click", async (event) => {
   try {
     if (action === "join-course") {
       await api(`/api/courses/${id}/join`, { method: "POST", body: JSON.stringify({}) });
-      await refreshAndRender();
+      await refreshCourses();
+      render();
       showMessage("Course joined.");
     }
 
     if (action === "view-resource") {
       await api(`/api/resources/${id}?seconds_spent=30`);
-      await loadCoreData();
+      state.resources = await api("/api/resources");
       render();
       showMessage("Resource view recorded.");
     }
 
     if (action === "load-thread") {
-      const discussions = await api("/api/discussions");
-      state.discussions = discussions;
+      const thread = await api(`/api/discussions/${id}`);
+      const idx = state.discussions.findIndex((d) => d.id === thread.id);
+      if (idx >= 0) {
+        state.discussions[idx] = thread;
+      } else {
+        state.discussions.push(thread);
+      }
       render();
     }
 
     if (action === "helpful") {
       await api(`/api/replies/${id}/helpful`, { method: "POST" });
-      const discussions = await api("/api/discussions");
-      state.discussions = discussions;
+      for (const thread of state.discussions) {
+        for (const reply of (thread.replies || [])) {
+          if (reply.id === Number(id)) {
+            reply.helpful_count += 1;
+            break;
+          }
+        }
+      }
       render();
       showMessage("Helpful vote recorded.");
     }
@@ -1429,7 +1451,7 @@ content.addEventListener("click", async (event) => {
     if (action === "back-to-quizzes") {
       resetQuizState();
       state.view = "quizzes";
-      await loadCoreData();
+      await refreshQuizzes();
       renderNav();
       renderQuizList();
     }
@@ -1480,7 +1502,8 @@ content.addEventListener("submit", async (event) => {
         method: "POST",
         body: JSON.stringify(formData(form)),
       });
-      await refreshAndRender();
+      await refreshCourses();
+      render();
       showMessage("Learning goal saved.");
     }
 
@@ -1499,7 +1522,9 @@ content.addEventListener("submit", async (event) => {
       payload.estimated_minutes = Number(payload.estimated_minutes || 15);
       await api("/api/resources", { method: "POST", body: JSON.stringify(payload) });
       form.reset();
-      await refreshAndRender();
+      state.resources = await api("/api/resources");
+      await refreshCourses();
+      render();
       showMessage("Resource added.");
     }
 
@@ -1508,7 +1533,7 @@ content.addEventListener("submit", async (event) => {
       payload.course_id = Number(payload.course_id);
       await api("/api/discussions", { method: "POST", body: JSON.stringify(payload) });
       form.reset();
-      state.discussions = await api("/api/discussions");
+      await refreshDiscussions();
       render();
       showMessage("Discussion posted.");
     }
@@ -1519,7 +1544,7 @@ content.addEventListener("submit", async (event) => {
         body: JSON.stringify(formData(form)),
       });
       form.reset();
-      state.discussions = await api("/api/discussions");
+      await refreshDiscussions();
       render();
       showMessage("Reply posted.");
     }
@@ -1638,16 +1663,19 @@ async function downloadDataset(dataset) {
 
 async function boot() {
   if (!state.token) {
+    document.querySelector("#boot-loader").classList.add("hidden");
     showLanding();
     return;
   }
   try {
     state.user = await api("/api/me");
+    document.querySelector("#boot-loader").classList.add("hidden");
     showApp();
     await refreshAndRender();
     startNotificationPolling();
   } catch {
     clearSession();
+    document.querySelector("#boot-loader").classList.add("hidden");
   }
 }
 
