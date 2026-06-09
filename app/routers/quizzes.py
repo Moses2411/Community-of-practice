@@ -1,6 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.dependencies import CONTENT_ROLES, ContentManagerUser, CurrentUser, RESEARCH_ROLES, SessionDep, require_course_membership, require_experimental_group
 from app.serializers import quiz_attempt_response, serialize_quiz
 from app.utils import log_activity, select_round_questions
@@ -26,7 +27,7 @@ def list_quizzes(
         joined_course_ids = set(memberships)
         if course_id is not None and course_id not in joined_course_ids:
             raise HTTPException(status_code=403, detail="You must join this course first.")
-    query = select(Quiz).order_by(Quiz.created_at.desc())
+    query = select(Quiz).options(selectinload(Quiz.questions)).order_by(Quiz.created_at.desc())
     if course_id is not None:
         query = query.where(Quiz.course_id == course_id)
     elif joined_course_ids is not None:

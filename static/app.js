@@ -210,7 +210,7 @@ function renderNav() {
 }
 
 async function loadCoreData() {
-  const fetchers = [api("/api/courses")];
+  const fetchers = [api("/api/courses"), api("/api/resources")];
   if (!isControlGroup()) {
     fetchers.push(api("/api/discussions?include_replies=false"));
     fetchers.push(api("/api/quizzes"));
@@ -218,8 +218,7 @@ async function loadCoreData() {
     fetchers.push(Promise.resolve([]));
     fetchers.push(Promise.resolve([]));
   }
-  const [courses, discussions, quizzes] = await Promise.all(fetchers);
-  const resources = await api("/api/resources");
+  const [courses, resources, discussions, quizzes] = await Promise.all(fetchers);
   state.courses = courses;
   state.resources = resources;
   state.discussions = discussions;
@@ -457,15 +456,12 @@ function renderMyCourses() {
 }
 
 async function loadMyCoursesProgress(joined) {
-  const progressMap = {};
-  const promises = joined.map(async (course) => {
-    try {
-      progressMap[course.id] = await api(`/api/courses/${course.id}/progress`);
-    } catch {
-      progressMap[course.id] = null;
-    }
-  });
-  await Promise.all(promises);
+  let progressMap = {};
+  try {
+    progressMap = await api("/api/courses/progress");
+  } catch {
+    progressMap = {};
+  }
 
   content.innerHTML = joined
     .map((course) => {
@@ -474,8 +470,8 @@ async function loadMyCoursesProgress(joined) {
       const courseDiscussions = state.discussions.filter((d) => String(d.course_id) === String(course.id));
       const progress = progressMap[course.id] || {};
 
-      const resourcePct = progress.resource_count ? Math.round((progress.resources_viewed || 0) / progress.resource_count * 100) : 0;
-      const quizPct = progress.quiz_count ? Math.round((progress.quizzes_taken || 0) / progress.quiz_count * 100) : 0;
+      const resourcePct = course.resource_count ? Math.round((progress.resources_viewed || 0) / course.resource_count * 100) : 0;
+      const quizPct = courseQuizzes.length ? Math.round((progress.quizzes_taken || 0) / courseQuizzes.length * 100) : 0;
       const quizAvg = progress.quiz_average_percentage != null ? `${progress.quiz_average_percentage}% avg` : "";
 
       return `
@@ -496,7 +492,7 @@ async function loadMyCoursesProgress(joined) {
             <div class="progress-item" title="Resources viewed">
               <span class="muted">Resources</span>
               <div class="progress-bar"><div class="progress-fill" style="width:${resourcePct}%"></div></div>
-              <small>${progress.resources_viewed || 0}/${progress.resource_count || 0}</small>
+              <small>${progress.resources_viewed || 0}/${course.resource_count || 0}</small>
             </div>
             ${
               !isControlGroup()
@@ -504,7 +500,7 @@ async function loadMyCoursesProgress(joined) {
             <div class="progress-item" title="Quizzes taken">
               <span class="muted">Quizzes</span>
               <div class="progress-bar"><div class="progress-fill gold" style="width:${quizPct}%"></div></div>
-              <small>${progress.quizzes_taken || 0}/${progress.quiz_count || 0} ${quizAvg}</small>
+              <small>${progress.quizzes_taken || 0}/${courseQuizzes.length || 0} ${quizAvg}</small>
             </div>
             <div class="progress-item" title="Discussion participation">
               <span class="muted">Discussions</span>
@@ -1206,6 +1202,7 @@ async function render() {
 }
 
 async function refreshAndRender() {
+  content.innerHTML = '<section class="stack"><div class="empty">Loading...</div></section>';
   await loadCoreData();
   await render();
 }

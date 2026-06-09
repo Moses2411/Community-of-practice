@@ -2,6 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.dependencies import CONTENT_ROLES, CurrentUser, SessionDep, require_course_membership, require_experimental_group
 from app.serializers import serialize_reply, serialize_thread
@@ -28,7 +29,7 @@ def list_discussions(
         joined_course_ids = set(memberships)
         if course_id is not None and course_id not in joined_course_ids:
             raise HTTPException(status_code=403, detail="You must join this course first.")
-    query = select(DiscussionThread).order_by(DiscussionThread.created_at.desc())
+    query = select(DiscussionThread).options(selectinload(DiscussionThread.replies), selectinload(DiscussionThread.author)).order_by(DiscussionThread.created_at.desc())
     if course_id is not None:
         query = query.where(DiscussionThread.course_id == course_id)
     elif joined_course_ids is not None:

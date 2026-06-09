@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 from app.dependencies import ContentManagerUser, CurrentUser, OptionalUser, SessionDep
 from app.serializers import serialize_course
 from app.utils import log_activity
-from model import Course, DiscussionReply, DiscussionThread, Membership, QuizAttempt, ResourceView
+from model import Course, DiscussionReply, DiscussionThread, Membership, Quiz, QuizAttempt, ResourceView, Resource
 from schemas import CourseCreate, MembershipCreate
 
 router = APIRouter()
@@ -13,7 +14,15 @@ router = APIRouter()
 
 @router.get("/api/courses")
 def list_courses(db: SessionDep, current_user: OptionalUser):
-    courses = db.scalars(select(Course).order_by(Course.title)).all()
+    courses = db.scalars(
+        select(Course)
+        .options(
+            selectinload(Course.memberships),
+            selectinload(Course.resources),
+            selectinload(Course.threads),
+        )
+        .order_by(Course.title)
+    ).all()
     uid = current_user.id if current_user else None
     return [serialize_course(course, user_id=uid) for course in courses]
 
@@ -87,6 +96,8 @@ def course_progress(course_id: int, db: SessionDep, current_user: CurrentUser):
         )
     ) or 0
 
+    resource_count = len(course.resources)
+
     quiz_attempt_count = db.scalar(
         select(func.count(QuizAttempt.id)).where(
             QuizAttempt.user_id == current_user.id,
@@ -131,3 +142,72 @@ def course_progress(course_id: int, db: SessionDep, current_user: CurrentUser):
         "discussions_participated": discussion_participation,
         "joined_at": membership.joined_at if membership else None,
     }
+
+
+@router.get("/api/courses/progress")
+def bulk_course_progress(db: SessionDep, current_user: CurrentUser):
+    memberships = db.scalars(
+        select(Membership).where(Membership.user_id == current_user.id)
+    ).all()
+    if not memberships:
+        return {}
+
+    course_ids = [m.course_id for m in memberships]
+
+    resource_views = dict(
+        db.execute(
+            select(Resource.course_id, func.count(ResourceView.id))
+            .join(ResourceView, ResourceView.resource_id == Resource.id)
+            .where(ResourceView.user_id == current_user.id, Resource.course_id.in_(course_ids))
+            .group_by(Resource.course_id)
+        ).all()
+    )
+
+    quiz_attempts = dict(
+        db.execute(
+            select(Quiz.course_id, func.count(QuizAttempt.id))
+            .join(QuizAttempt, QuizAttempt.quiz_id == Quiz.id)
+            .where(QuizAttempt.user_id == current_user.id, Quiz.course_id.in_(course_ids))
+            .group_by(Quiz.course_id)
+        ).all()
+    )
+
+    quiz_avgs = dict(
+        db.execute(
+            select(Quiz.course_id, func.avg(QuizAttempt.score / QuizAttempt.total_points * 100))
+            .join(QuizAttempt, QuizAttempt.quiz_id == Quiz.id)
+            .where(QuizAttempt.user_id == current_user.id, Quiz.course_id.in_(course_ids), QuizAttempt.total_points > 0)
+            .group_by(Quiz.course_id)
+        ).all()
+    )
+
+    threads = dict(
+        db.execute(
+            select(DiscussionThread.course_id, func.count(DiscussionThread.id))
+            .where(DiscussionThread.author_id == current_user.id, DiscussionThread.course_id.in_(course_ids))
+            .group_by(DiscussionThread.course_id)
+        ).all()
+    )
+
+    replies = dict(
+        db.execute(
+            select(DiscussionThread.course_id, func.count(DiscussionReply.id))
+            .join(DiscussionReply, DiscussionReply.thread_id == DiscussionThread.id)
+            .where(DiscussionReply.author_id == current_user.id, DiscussionThread.course_id.in_(course_ids))
+            .group_by(DiscussionThread.course_id)
+        ).all()
+    )
+
+    result = {}
+    for m in memberships:
+        cid = m.course_id
+        result[cid] = {
+            "course_id": cid,
+            "resources_viewed": resource_views.get(cid, 0),
+            "quizzes_taken": quiz_attempts.get(cid, 0),
+            "quiz_average_percentage": round(quiz_avgs[cid], 1) if cid in quiz_avgs else None,
+            "discussions_participated": threads.get(cid, 0) + replies.get(cid, 0),
+            "joined_at": m.joined_at,
+        }
+    return result
+
