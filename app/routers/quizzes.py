@@ -104,7 +104,13 @@ def submit_quiz(quiz_id: int, payload: QuizSubmit, db: SessionDep, current_user:
     if not quiz.questions:
         raise HTTPException(status_code=400, detail="This quiz has no questions yet.")
 
-    round_questions = select_round_questions(db, quiz, current_user)
+    quiz_question_map = {q.id: q for q in quiz.questions}
+    submitted_question_ids = {a.question_id for a in payload.answers}
+    round_questions = [quiz_question_map[qid] for qid in submitted_question_ids if qid in quiz_question_map]
+
+    if not round_questions:
+        raise HTTPException(status_code=400, detail="No valid answers submitted.")
+
     answer_map = {answer.question_id: answer.selected_option for answer in payload.answers}
     total_points = float(sum(question.points for question in round_questions))
     score = 0.0
