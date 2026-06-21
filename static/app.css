@@ -755,6 +755,7 @@ button.warn { background: var(--accent); }
 }
 
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 .metric {
   min-height: 98px;
@@ -765,6 +766,11 @@ button.warn { background: var(--accent); }
   display: block;
   margin-top: 8px;
   font-size: 1.7rem;
+}
+
+.metric strong.compact-value {
+  font-size: 1rem;
+  line-height: 1.35;
 }
 
 .split {
@@ -1279,3 +1285,138 @@ button.warn { background: var(--accent); }
     max-width: 100%;
   }
 }
+
+/* ====== DAILY CHALLENGES ====== */
+.daily-challenges {
+  border: 1px solid var(--primary);
+  background: var(--primary-light);
+}
+
+.daily-challenges-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.daily-challenges-header h2 {
+  margin: 0;
+  color: var(--primary-dark);
+}
+
+.daily-challenge-card {
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  border-left: 3px solid var(--primary);
+}
+
+.daily-challenge-card:hover {
+  background: var(--surface-strong);
+  border-color: var(--accent);
+}
+
+.daily-challenge-card .card-header {
+  align-items: center;
+}
+
+.challenge-arrow {
+  font-size: 1.3rem;
+  color: var(--muted);
+  transition: transform 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.daily-challenge-card:hover .challenge-arrow {
+  transform: translateX(4px);
+  color: var(--primary);
+}
+
+.daily-challenges-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ====== NEXT SESSION COUNTDOWN ====== */
+.next-session-panel {
+  background: linear-gradient(135deg, #0f1a1c 0%, #1a2d30 100%);
+  color: #e8edee;
+  border: 1px solid #2a4a4e;
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.next-session-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.next-session-icon {
+  color: #4db8b0;
+  display: flex;
+  align-items: center;
+}
+
+.next-session-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.next-session-info .muted {
+  color: #8aa8ad;
+  font-size: 0.85rem;
+}
+
+.next-session-timer {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  color: #5ed4c8;
+  letter-spacing: 2px;
+  text-shadow: 0 0 12px rgba(94, 212, 200, 0.3);
+}
+
+.next-session-grid {
+  display: flex;
+  gap: 20px;
+}
+
+.next-session-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.next-session-count {
+  font-size: 0.9rem;
+  color: #b0d0d4;
+  font-weight: 500;
+}
+
+/* ====== TERMINAL THEME ELEMENTS ====== */
+.code-block {
+  background: #0d1b1e;
+  border: 1px solid #1e3a3f;
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 0.875rem;
+  color: #b8d4d8;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.code-block .keyword { color: #4db8b0; }
+.code-block .string { color: #a8d68a; }
+.code-block .comment { color: #5a7a80; font-style: italic; }
+.code-block .function { color: #7ab8d4; }

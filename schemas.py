@@ -235,6 +235,10 @@ class PracticalExerciseOut(BaseModel):
     starter_code: str | None
     expected_output: str | None
     solution_notes: str | None = None
+    release_key: str | None = None
+    release_at: datetime | None = None
+    expires_at: datetime | None = None
+    source: str | None = None
     check_count: int = 0
     best_percentage: float | None = None
     attempt_count: int = 0

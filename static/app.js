@@ -366,10 +366,77 @@ function performanceCourseCard(row) {
 
 function practicalTypeLabel(type) {
   return {
+    coding: "Coding",
     python: "Python",
     java: "Java",
     database: "Database",
   }[type] || type;
+}
+
+function isPracticalTypeMatch(exercise, selectedType) {
+  if (!selectedType) return true;
+  if (selectedType === "coding") return ["python", "java"].includes(exercise.practical_type);
+  return exercise.practical_type === selectedType;
+}
+
+const RELEASE_TIMES = [
+  { hour: 8, label: "8:00 AM" },
+  { hour: 12, label: "12:00 PM" },
+  { hour: 19, label: "7:00 PM" },
+];
+
+function practicalReleaseParts(exercise) {
+  const key = exercise && exercise.release_key;
+  const match = /^(\d{4})-(\d{2})-(\d{2})-(08|12|19)$/.exec(key || "");
+  if (!match) return null;
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+    hour: Number(match[4]),
+  };
+}
+
+function formatReleaseDate(parts) {
+  if (!parts) return "";
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    .format(new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 12)));
+}
+
+function releaseHourLabel(hour) {
+  const t = RELEASE_TIMES.find((r) => r.hour === hour);
+  return t ? t.label : `${hour}:00`;
+}
+
+function practicalReleaseLabel(exercise) {
+  const parts = practicalReleaseParts(exercise);
+  if (!parts) return "Current release";
+  return `${formatReleaseDate(parts)} at ${releaseHourLabel(parts.hour)} WAT`;
+}
+
+function nextPracticalReleaseLabel(exercise) {
+  const now = new Date();
+  const localNow = new Date(now.toLocaleString("en-US", { timeZone: "Africa/Lagos" }));
+  const today = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate());
+  const hours = localNow.getHours() + localNow.getMinutes() / 60;
+
+  let next = null;
+  for (const t of RELEASE_TIMES) {
+    if (hours < t.hour) {
+      const d = new Date(today);
+      d.setHours(t.hour, 0, 0, 0);
+      next = { date: d, label: t.label };
+      break;
+    }
+  }
+  if (!next) {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(RELEASE_TIMES[0].hour, 0, 0, 0);
+    next = { date: tomorrow, label: RELEASE_TIMES[0].label };
+  }
+  const dateLabel = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(next.date);
+  return `${dateLabel} at ${next.label} WAT`;
 }
 
 function refreshPerformance() {
@@ -468,6 +535,11 @@ function renderOverview() {
   const discussionCount = isControlGroup() ? 0 : state.discussions.length;
   const testCount = isControlGroup() ? 0 : state.quizzes.length;
 
+  const codingExercises = (isControlGroup() ? [] : state.practicals).filter((e) => ["python", "java"].includes(e.practical_type));
+  const databaseExercises = (isControlGroup() ? [] : state.practicals).filter((e) => e.practical_type === "database");
+  const sampleExercise = state.practicals[0] || null;
+  const releaseLabel = practicalReleaseLabel(sampleExercise);
+
   content.innerHTML = `
     <section class="grid">
       ${metric("Courses", courseCount)}
@@ -478,6 +550,8 @@ function renderOverview() {
       ${metric("Research ID", state.user.research_id, "blue")}
       ${metric("Study Group", state.user.study_group)}
     </section>
+
+    ${isControlGroup() ? "" : renderDailyChallenges(codingExercises, databaseExercises, releaseLabel)}
 
     ${renderPerformancePanel()}
 
@@ -524,6 +598,62 @@ function renderOverview() {
             .join("")}
         </div>
       </article>
+    </section>
+  `;
+}
+
+function renderDailyChallenges(codingExercises, databaseExercises, releaseLabel) {
+  if (!codingExercises.length && !databaseExercises.length) return "";
+  return `
+    <section class="panel daily-challenges">
+      <div class="daily-challenges-header">
+        <h2>Today's Practical Challenges</h2>
+        <span class="badge gold">${escapeHtml(releaseLabel)}</span>
+      </div>
+      <div class="grid two">
+        <div class="stack">
+          <h3><span class="badge purple">Coding</span> (${codingExercises.length} available)</h3>
+          <div class="list">
+            ${codingExercises.slice(0, 6).map((ex) => `
+              <div class="card compact daily-challenge-card" data-action="open-practicals" data-course="${ex.course_id}">
+                <div class="card-header">
+                  <div>
+                    <div class="badge-row">
+                      <span class="badge">${escapeHtml(ex.course_code || "")}</span>
+                      <span class="badge">${escapeHtml(practicalTypeLabel(ex.practical_type))}</span>
+                      <span class="badge gold">${escapeHtml(ex.difficulty)}</span>
+                    </div>
+                    <h3>${escapeHtml(ex.title)}</h3>
+                  </div>
+                  <span class="challenge-arrow">→</span>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+        <div class="stack">
+          <h3><span class="badge">Database</span> (${databaseExercises.length} available)</h3>
+          <div class="list">
+            ${databaseExercises.slice(0, 6).map((ex) => `
+              <div class="card compact daily-challenge-card" data-action="open-practicals" data-course="${ex.course_id}">
+                <div class="card-header">
+                  <div>
+                    <div class="badge-row">
+                      <span class="badge">${escapeHtml(ex.course_code || "")}</span>
+                      <span class="badge gold">${escapeHtml(ex.difficulty)}</span>
+                    </div>
+                    <h3>${escapeHtml(ex.title)}</h3>
+                  </div>
+                  <span class="challenge-arrow">→</span>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="daily-challenges-footer">
+        <button data-action="open-practicals" type="button" class="secondary">View All Practicals</button>
+      </div>
     </section>
   `;
 }
@@ -927,12 +1057,18 @@ function renderDiscussions() {
 }
 
 function renderPracticals() {
-  setTitle("Practicals", "Coding and database practice");
+  setTitle("Practicals", "Daily coding and database releases");
   const filtered = state.practicals.filter((exercise) => {
     if (state.selectedCourse && String(exercise.course_id) !== String(state.selectedCourse)) return false;
-    if (state.selectedPracticalType && exercise.practical_type !== state.selectedPracticalType) return false;
+    if (!isPracticalTypeMatch(exercise, state.selectedPracticalType)) return false;
     return true;
   });
+  const sampleExercise = state.practicals[0] || null;
+  const codingCount = filtered.filter((exercise) => ["python", "java"].includes(exercise.practical_type)).length;
+  const databaseCount = filtered.filter((exercise) => exercise.practical_type === "database").length;
+
+  const releaseInfo = computeReleaseInfo();
+  const nextTime = releaseInfo.nextTime;
 
   content.innerHTML = `
     <section class="toolbar">
@@ -942,6 +1078,7 @@ function renderPracticals() {
       </select>
       <select id="practical-type-filter">
         <option value="">All practicals</option>
+        <option value="coding" ${state.selectedPracticalType === "coding" ? "selected" : ""}>Coding</option>
         <option value="python" ${state.selectedPracticalType === "python" ? "selected" : ""}>Python</option>
         <option value="java" ${state.selectedPracticalType === "java" ? "selected" : ""}>Java</option>
         <option value="database" ${state.selectedPracticalType === "database" ? "selected" : ""}>Database</option>
@@ -949,12 +1086,108 @@ function renderPracticals() {
       <button class="secondary" data-action="practical-history" type="button">Submission History</button>
     </section>
 
+    <section class="grid three">
+      ${metric("Active Release", practicalReleaseLabel(sampleExercise), "compact-value")}
+      ${metric("Current Exercises", `${codingCount} coding / ${databaseCount} database`, "compact-value")}
+      ${metric("Next Release", nextPracticalReleaseLabel(sampleExercise), "compact-value")}
+    </section>
+
+    ${renderNextSessionCountdown(nextTime)}
+
     <section class="list">
       ${
         filtered.length
           ? filtered.map((exercise) => renderPracticalCard(exercise)).join("")
-          : `<div class="empty">Join a course to see available coding and database practicals.</div>`
+          : `<div class="empty">No practical exercises available for this filter. Check back at the next session time.</div>`
       }
+    </section>
+  `;
+}
+
+function computeReleaseInfo() {
+  const now = new Date();
+  const localNow = new Date(now.toLocaleString("en-US", { timeZone: "Africa/Lagos" }));
+  const today = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate());
+  const hours = localNow.getHours() + localNow.getMinutes() / 60 + localNow.getSeconds() / 3600;
+
+  let currentTime = null;
+  let nextTime = null;
+  for (const t of RELEASE_TIMES) {
+    if (hours >= t.hour && !currentTime) {
+      currentTime = t;
+    } else if (hours < t.hour && !nextTime) {
+      const d = new Date(today);
+      d.setHours(t.hour, 0, 0, 0);
+      nextTime = { ...t, date: d };
+      break;
+    }
+  }
+  if (!nextTime) {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(RELEASE_TIMES[0].hour, 0, 0, 0);
+    nextTime = { ...RELEASE_TIMES[0], date: tomorrow };
+  }
+  return { currentTime, nextTime };
+}
+
+function renderNextSessionCountdown(nextTime) {
+  if (!nextTime || !nextTime.date) return "";
+  const now = new Date();
+  const localNow = new Date(now.toLocaleString("en-US", { timeZone: "Africa/Lagos" }));
+  const diffMs = Math.max(0, nextTime.date.getTime() - localNow.getTime());
+  const diffH = Math.floor(diffMs / 3600000);
+  const diffM = Math.floor((diffMs % 3600000) / 60000);
+  const diffS = Math.floor((diffMs % 60000) / 1000);
+  const totalSec = Math.floor(diffMs / 1000);
+
+  const timerId = "next-session-timer";
+  window.clearInterval(window[timerId + "_interval"]);
+
+  if (totalSec <= 0) return "";
+
+  window[timerId + "_interval"] = setInterval(() => {
+    const el = document.getElementById(timerId);
+    if (!el) { clearInterval(window[timerId + "_interval"]); return; }
+    const n = new Date();
+    const ln = new Date(n.toLocaleString("en-US", { timeZone: "Africa/Lagos" }));
+    const d = Math.max(0, nextTime.date.getTime() - ln.getTime());
+    const h = Math.floor(d / 3600000);
+    const m = Math.floor((d % 3600000) / 60000);
+    const s = Math.floor((d % 60000) / 1000);
+    el.textContent = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    if (d <= 0) {
+      clearInterval(window[timerId + "_interval"]);
+      refreshPracticals();
+      renderPracticals();
+    }
+  }, 1000);
+
+  return `
+    <section class="panel next-session-panel">
+      <div class="next-session-content">
+        <div class="next-session-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="next-session-info">
+          <span class="muted">Next session in</span>
+          <span class="next-session-timer" id="${timerId}">${String(diffH).padStart(2, "0")}:${String(diffM).padStart(2, "0")}:${String(diffS).padStart(2, "0")}</span>
+          <span class="muted">at ${nextTime.label} WAT</span>
+        </div>
+      </div>
+      <div class="next-session-grid">
+        <div class="next-session-col">
+          <span class="badge purple">Coding</span>
+          <span class="next-session-count">10 exercises</span>
+        </div>
+        <div class="next-session-col">
+          <span class="badge">Database</span>
+          <span class="next-session-count">10 exercises</span>
+        </div>
+      </div>
     </section>
   `;
 }
@@ -971,6 +1204,7 @@ function renderPracticalCard(exercise) {
             <span class="badge gold">${escapeHtml(exercise.difficulty)}</span>
             <span class="badge">${exercise.check_count} checks</span>
             <span class="badge blue">${exercise.best_percentage == null ? "No score yet" : exercise.best_percentage + "% best"}</span>
+            <span class="badge">${escapeHtml(practicalReleaseLabel(exercise))}</span>
           </div>
           <h2>${escapeHtml(exercise.title)}</h2>
           <p>${escapeHtml(exercise.prompt)}</p>
@@ -1781,10 +2015,12 @@ content.addEventListener("click", async (event) => {
 
     if (action === "open-practicals") {
       state.view = "practicals";
-      await refreshPracticals();
-      await refreshPerformance();
+      state.selectedCourse = button.dataset.course || "";
+      state.selectedPracticalType = button.dataset.type || "";
       renderNav();
       renderPracticals();
+      refreshPracticals().then(() => { if (state.view === "practicals") renderPracticals(); });
+      refreshPerformance();
     }
 
     if (action === "practical-history") {
@@ -1880,8 +2116,8 @@ content.addEventListener("submit", async (event) => {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      await refreshPracticals();
-      await refreshPerformance();
+      refreshPracticals();
+      refreshPerformance();
       renderPracticalResult(result);
       showMessage(`Practical submitted. Score: ${result.percentage}%.`);
     }

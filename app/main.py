@@ -26,6 +26,7 @@ from app.routers import (
     resources,
     surveys,
 )
+from app.practical_schedule import ensure_practical_release_schema
 from app.seed import reset_stale_sqlite_schema, seed_database
 from db.database import Base, SessionLocal, engine
 
@@ -34,6 +35,7 @@ from db.database import Base, SessionLocal, engine
 async def lifespan(app: FastAPI):
     reset_stale_sqlite_schema()
     Base.metadata.create_all(bind=engine)
+    ensure_practical_release_schema()
     with SessionLocal() as db:
         seed_database(db)
     yield

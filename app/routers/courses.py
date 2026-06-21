@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.dependencies import ContentManagerUser, CurrentUser, OptionalUser, SessionDep
+from app.practical_schedule import ensure_daily_practicals
 from app.serializers import serialize_course
 from app.utils import log_activity
 from model import (
@@ -100,6 +101,8 @@ def course_progress(course_id: int, db: SessionDep, current_user: CurrentUser):
     if membership is None and current_user.role not in {"facilitator", "researcher", "admin"}:
         raise HTTPException(status_code=403, detail="You must join this course first.")
 
+    release = ensure_daily_practicals(db, [course_id])
+
     resource_view_count = db.scalar(
         select(func.count(ResourceView.id)).where(
             ResourceView.user_id == current_user.id,
@@ -128,13 +131,21 @@ def course_progress(course_id: int, db: SessionDep, current_user: CurrentUser):
     quiz_average = round(quiz_avg, 1) if quiz_avg else None
 
     practical_attempt_count = db.scalar(
-        select(func.count(PracticalAttempt.id)).where(
+        select(func.count(func.distinct(PracticalAttempt.exercise_id)))
+        .join(PracticalExercise, PracticalAttempt.exercise_id == PracticalExercise.id)
+        .where(
             PracticalAttempt.user_id == current_user.id,
-            PracticalAttempt.exercise.has(course_id=course_id),
+            PracticalExercise.course_id == course_id,
+            PracticalExercise.release_key == release.key,
         )
     ) or 0
 
-    practical_count = len(course.practical_exercises)
+    practical_count = db.scalar(
+        select(func.count(PracticalExercise.id)).where(
+            PracticalExercise.course_id == course_id,
+            PracticalExercise.release_key == release.key,
+        )
+    ) or 0
 
     practical_avg = db.scalar(
         select(func.avg(PracticalAttempt.score / PracticalAttempt.total_points * 100)).where(
@@ -185,6 +196,7 @@ def bulk_course_progress(db: SessionDep, current_user: CurrentUser):
         return {}
 
     course_ids = [m.course_id for m in memberships]
+    release = ensure_daily_practicals(db, course_ids)
 
     resource_views = dict(
         db.execute(
@@ -215,9 +227,21 @@ def bulk_course_progress(db: SessionDep, current_user: CurrentUser):
 
     practical_attempts = dict(
         db.execute(
-            select(PracticalExercise.course_id, func.count(PracticalAttempt.id))
+            select(PracticalExercise.course_id, func.count(func.distinct(PracticalAttempt.exercise_id)))
             .join(PracticalAttempt, PracticalAttempt.exercise_id == PracticalExercise.id)
-            .where(PracticalAttempt.user_id == current_user.id, PracticalExercise.course_id.in_(course_ids))
+            .where(
+                PracticalAttempt.user_id == current_user.id,
+                PracticalExercise.course_id.in_(course_ids),
+                PracticalExercise.release_key == release.key,
+            )
+            .group_by(PracticalExercise.course_id)
+        ).all()
+    )
+
+    practical_counts = dict(
+        db.execute(
+            select(PracticalExercise.course_id, func.count(PracticalExercise.id))
+            .where(PracticalExercise.course_id.in_(course_ids), PracticalExercise.release_key == release.key)
             .group_by(PracticalExercise.course_id)
         ).all()
     )
@@ -261,6 +285,7 @@ def bulk_course_progress(db: SessionDep, current_user: CurrentUser):
             "quizzes_taken": quiz_attempts.get(cid, 0),
             "quiz_average_percentage": round(quiz_avgs[cid], 1) if cid in quiz_avgs else None,
             "practicals_completed": practical_attempts.get(cid, 0),
+            "practical_count": practical_counts.get(cid, 0),
             "practical_average_percentage": round(practical_avgs[cid], 1) if cid in practical_avgs else None,
             "discussions_participated": threads.get(cid, 0) + replies.get(cid, 0),
             "joined_at": m.joined_at,

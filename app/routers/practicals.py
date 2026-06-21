@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.dependencies import CONTENT_ROLES, CurrentUser, SessionDep, require_course_membership, require_experimental_group
+from app.practical_schedule import ensure_daily_practicals
 from app.serializers import practical_attempt_response, serialize_practical_exercise
 from app.utils import log_activity
 from model import Course, Membership, PracticalAttempt, PracticalExercise, Quiz, QuizAttempt, ResourceView
@@ -56,12 +57,20 @@ def list_practicals(
 ):
     require_experimental_group(current_user)
     joined_course_ids = None
+    active_course_ids: list[int] = []
     if current_user.role not in CONTENT_ROLES:
         joined_course_ids = set(
             db.scalars(select(Membership.course_id).where(Membership.user_id == current_user.id)).all()
         )
         if course_id is not None and course_id not in joined_course_ids:
             raise HTTPException(status_code=403, detail="You must join this course first.")
+        active_course_ids = [course_id] if course_id is not None else list(joined_course_ids)
+    elif course_id is not None:
+        active_course_ids = [course_id]
+    else:
+        active_course_ids = db.scalars(select(Course.id)).all()
+
+    release = ensure_daily_practicals(db, active_course_ids)
 
     query = (
         select(PracticalExercise)
@@ -69,14 +78,18 @@ def list_practicals(
             selectinload(PracticalExercise.course),
             selectinload(PracticalExercise.attempts),
         )
-        .order_by(PracticalExercise.practical_type, PracticalExercise.difficulty, PracticalExercise.title)
+        .where(PracticalExercise.release_key == release.key)
+        .order_by(PracticalExercise.course_id, PracticalExercise.practical_type, PracticalExercise.difficulty, PracticalExercise.title)
     )
     if course_id is not None:
         query = query.where(PracticalExercise.course_id == course_id)
     elif joined_course_ids is not None:
         query = query.where(PracticalExercise.course_id.in_(joined_course_ids))
     if practical_type:
-        query = query.where(PracticalExercise.practical_type == practical_type)
+        if practical_type == "coding":
+            query = query.where(PracticalExercise.practical_type.in_(["python", "java"]))
+        else:
+            query = query.where(PracticalExercise.practical_type == practical_type)
 
     exercises = db.scalars(query).all()
     include_solution = current_user.role in CONTENT_ROLES

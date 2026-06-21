@@ -7,6 +7,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    Index,
     String,
     Text,
     UniqueConstraint,
@@ -273,10 +274,25 @@ class PracticalExercise(Base):
     expected_output = Column(Text, nullable=True)
     solution_notes = Column(Text, nullable=True)
     checks_json = Column(Text, nullable=True)
+    release_key = Column(String(40), nullable=True, index=True)
+    release_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    source = Column(String(80), nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
     course = relationship("Course", back_populates="practical_exercises")
     attempts = relationship("PracticalAttempt", back_populates="exercise", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index(
+            "ix_practical_exercises_release_unique",
+            "course_id",
+            "release_key",
+            "practical_type",
+            "title",
+            unique=True,
+        ),
+    )
 
 
 class PracticalAttempt(Base):
