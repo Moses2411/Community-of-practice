@@ -45,6 +45,7 @@ class User(Base):
     threads = relationship("DiscussionThread", back_populates="author", cascade="all, delete-orphan")
     replies = relationship("DiscussionReply", back_populates="author", cascade="all, delete-orphan")
     quiz_attempts = relationship("QuizAttempt", back_populates="user", cascade="all, delete-orphan")
+    practical_attempts = relationship("PracticalAttempt", back_populates="user", cascade="all, delete-orphan")
     reflections = relationship("Reflection", back_populates="user", cascade="all, delete-orphan")
     platform_feedback = relationship("PlatformFeedback", back_populates="user", cascade="all, delete-orphan")
     activity_logs = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
@@ -78,6 +79,7 @@ class Course(Base):
     resources = relationship("Resource", back_populates="course", cascade="all, delete-orphan")
     threads = relationship("DiscussionThread", back_populates="course", cascade="all, delete-orphan")
     quizzes = relationship("Quiz", back_populates="course", cascade="all, delete-orphan")
+    practical_exercises = relationship("PracticalExercise", back_populates="course", cascade="all, delete-orphan")
 
 
 class Membership(Base):
@@ -199,7 +201,7 @@ class Quiz(Base):
     id = Column(Integer, primary_key=True, index=True)
     course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(180), nullable=False)
-    quiz_type = Column(String(40), default="practice", nullable=False)
+    quiz_type = Column(String(40), default="test", nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
@@ -256,6 +258,41 @@ class QuizAnswer(Base):
 
     attempt = relationship("QuizAttempt", back_populates="answers")
     question = relationship("QuizQuestion", back_populates="answers")
+
+
+class PracticalExercise(Base):
+    __tablename__ = "practical_exercises"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(180), nullable=False)
+    practical_type = Column(String(40), nullable=False)  # "python", "java", or "database"
+    difficulty = Column(String(40), default="beginner", nullable=False)
+    prompt = Column(Text, nullable=False)
+    starter_code = Column(Text, nullable=True)
+    expected_output = Column(Text, nullable=True)
+    solution_notes = Column(Text, nullable=True)
+    checks_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+    course = relationship("Course", back_populates="practical_exercises")
+    attempts = relationship("PracticalAttempt", back_populates="exercise", cascade="all, delete-orphan")
+
+
+class PracticalAttempt(Base):
+    __tablename__ = "practical_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    exercise_id = Column(Integer, ForeignKey("practical_exercises.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    submitted_code = Column(Text, nullable=False)
+    score = Column(Float, default=0)
+    total_points = Column(Float, default=100)
+    feedback_json = Column(Text, nullable=True)
+    completed_at = Column(DateTime, default=utcnow)
+
+    exercise = relationship("PracticalExercise", back_populates="attempts")
+    user = relationship("User", back_populates="practical_attempts")
 
 
 class Reflection(Base):

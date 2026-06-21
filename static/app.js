@@ -6,7 +6,12 @@ const state = {
   resources: [],
   discussions: [],
   quizzes: [],
+  practicals: [],
+  performance: null,
   selectedCourse: "",
+  selectedPracticalType: "",
+  sidebarCollapsed: localStorage.getItem("cop_sidebar_collapsed") === "1",
+  mobileMenuOpen: false,
   activeQuiz: null,
   quizStartedAt: null,
   quizPhase: "list",
@@ -32,14 +37,17 @@ const toast = document.querySelector("#toast");
 const viewTitle = document.querySelector("#view-title");
 const viewKicker = document.querySelector("#view-kicker");
 const userName = document.querySelector("#user-name");
+const sidebarToggle = document.querySelector("#sidebar-toggle");
+const mobileMenuBtn = document.querySelector("#mobile-menu-btn");
 
 const navItems = [
   ["overview", "Overview"],
   ["courses", "Courses"],
   ["mycourses", "My Courses"],
   ["resources", "Resources"],
+  ["practicals", "Practicals"],
   ["discussions", "Discussions"],
-  ["quizzes", "Quizzes"],
+  ["quizzes", "Tests"],
   ["surveys", "Surveys"],
   ["reflections", "Reflections"],
   ["feedback", "Feedback"],
@@ -100,6 +108,7 @@ function showRegisterForm() {
 function showApp() {
   authScreen.classList.add("hidden");
   appScreen.classList.remove("hidden");
+  applySidebarState();
   userName.textContent = `${state.user.full_name} (${state.user.research_id}) · ${state.user.study_group}`;
 }
 
@@ -192,38 +201,71 @@ function setTitle(title, kicker = "Workspace") {
 }
 
 function renderNav() {
+  applySidebarState();
   nav.innerHTML = navItems
     .filter(([id]) => {
       if (id === "research" && !canResearch()) return false;
       if (id === "teaching" && !canManageContent()) return false;
-      if (isControlGroup() && ["quizzes", "discussions"].includes(id)) return false;
+      if (isControlGroup() && ["quizzes", "discussions", "practicals"].includes(id)) return false;
       return true;
     })
     .map(
       ([id, label]) => `
-        <button class="nav-btn ${state.view === id ? "active" : ""}" data-view="${id}" type="button">
-          ${escapeHtml(label)}
+        <button class="nav-btn ${state.view === id ? "active" : ""}" data-view="${id}" type="button" title="${escapeHtml(label)}">
+          <span class="nav-icon">${escapeHtml(navIcon(id))}</span>
+          <span class="nav-label">${escapeHtml(label)}</span>
         </button>
       `
     )
     .join("");
 }
 
+function navIcon(id) {
+  return {
+    overview: "O",
+    courses: "C",
+    mycourses: "M",
+    resources: "R",
+    practicals: "P",
+    discussions: "D",
+    quizzes: "T",
+    surveys: "S",
+    reflections: "J",
+    feedback: "F",
+    teaching: "I",
+    research: "A",
+  }[id] || ".";
+}
+
+function applySidebarState() {
+  appScreen.classList.toggle("sidebar-collapsed", state.sidebarCollapsed);
+  appScreen.classList.toggle("mobile-menu-open", state.mobileMenuOpen);
+  if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", String(!state.sidebarCollapsed));
+}
+
+
 async function loadCoreData() {
   const fetchers = [api("/api/courses"), api("/api/resources")];
   if (!isControlGroup()) {
     fetchers.push(api("/api/discussions?include_replies=false"));
     fetchers.push(api("/api/quizzes"));
+    fetchers.push(api("/api/practicals"));
+    fetchers.push(api("/api/performance"));
   } else {
     fetchers.push(Promise.resolve([]));
     fetchers.push(Promise.resolve([]));
+    fetchers.push(Promise.resolve([]));
+    fetchers.push(Promise.resolve(null));
   }
-  const [courses, resources, discussions, quizzes] = await Promise.all(fetchers);
+  const [courses, resources, discussions, quizzes, practicals, performance] = await Promise.all(fetchers);
   state.courses = courses;
   state.resources = resources;
   state.discussions = discussions;
   state.quizzes = quizzes;
+  state.practicals = practicals;
+  state.performance = performance;
 }
+
 
 function courseOptions(selected = "") {
   return state.courses
@@ -257,6 +299,82 @@ function metric(label, value, tone = "") {
       <strong class="${tone}">${escapeHtml(value)}</strong>
     </article>
   `;
+}
+
+function courseById(id) {
+  return state.courses.find((course) => String(course.id) === String(id));
+}
+
+function performanceBadge(row) {
+  if (!row) return `<span class="badge">No performance data</span>`;
+  if (row.status === "strong") return `<span class="badge blue">Doing well</span>`;
+  if (row.status === "steady") return `<span class="badge gold">Steady progress</span>`;
+  if (row.status === "needs_improvement") return `<span class="badge danger">Needs improvement</span>`;
+  return `<span class="badge">Not started</span>`;
+}
+
+function performanceForCourse(courseId) {
+  return state.performance?.courses?.find((row) => String(row.course_id) === String(courseId));
+}
+
+function renderPerformancePanel() {
+  if (isControlGroup() || !state.performance) return "";
+  const strong = state.performance.strong || [];
+  const needs = state.performance.needs_improvement || [];
+  return `
+    <section class="grid two">
+      <article class="panel stack">
+        <h2>Performing Well</h2>
+        <div class="list">
+          ${
+            strong.length
+              ? strong.slice(0, 4).map((row) => performanceCourseCard(row)).join("")
+              : `<div class="empty">Complete tests and practicals to build this list.</div>`
+          }
+        </div>
+      </article>
+      <article class="panel stack">
+        <h2>Needs Improvement</h2>
+        <div class="list">
+          ${
+            needs.length
+              ? needs.slice(0, 4).map((row) => performanceCourseCard(row)).join("")
+              : `<div class="empty">No weak courses detected from your current attempts.</div>`
+          }
+        </div>
+      </article>
+    </section>
+  `;
+}
+
+function performanceCourseCard(row) {
+  return `
+    <div class="card compact">
+      <div class="card-header">
+        <div>
+          <div class="badge-row">
+            <span class="badge">${escapeHtml(row.course_code)}</span>
+            ${performanceBadge(row)}
+          </div>
+          <h3>${escapeHtml(row.course_title)}</h3>
+          <p class="muted">Tests: ${row.quiz_average_percentage ?? "N/A"}% · Practicals: ${row.practical_average_percentage ?? "N/A"}% · Resources: ${row.resource_percentage}%</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function practicalTypeLabel(type) {
+  return {
+    python: "Python",
+    java: "Java",
+    database: "Database",
+  }[type] || type;
+}
+
+function refreshPerformance() {
+  if (isControlGroup()) return Promise.resolve();
+  return api("/api/performance").then((data) => { state.performance = data; }).catch(() => {});
 }
 
 function resetQuizState() {
@@ -317,14 +435,14 @@ function advanceToNextQuestion() {
 }
 
 async function submitQuizAnswers() {
-  const quiz = state.activeQuiz;
+  const test = state.activeQuiz;
   const seconds_spent = Math.round((Date.now() - state.quizStartedAt) / 1000);
   const answers = state.quizQuestions.map((q) => ({
     question_id: q.id,
     selected_option: state.quizAnswers[q.id] || null,
   }));
   try {
-    const result = await api(`/api/quizzes/${quiz.id}/submit`, {
+    const result = await api(`/api/quizzes/${test.id}/submit`, {
       method: "POST",
       body: JSON.stringify({ seconds_spent, answers }),
     });
@@ -332,8 +450,9 @@ async function submitQuizAnswers() {
     state.quizPhase = "result";
     state.activeQuiz = null;
     state.quizStartedAt = null;
+    await refreshPerformance();
     renderQuizzes();
-    showMessage(`Quiz submitted. Score: ${result.score}/${result.total_points} (${result.percentage}%).`);
+    showMessage(`Test submitted. Score: ${result.score}/${result.total_points} (${result.percentage}%).`);
   } catch (error) {
     showMessage(error.message, "error");
     state.quizPhase = "list";
@@ -345,18 +464,22 @@ function renderOverview() {
   setTitle("Overview", "Learning and engagement");
   const courseCount = state.courses.length;
   const resourceCount = state.resources.length;
+  const practicalCount = isControlGroup() ? 0 : state.practicals.length;
   const discussionCount = isControlGroup() ? 0 : state.discussions.length;
-  const quizCount = isControlGroup() ? 0 : state.quizzes.length;
+  const testCount = isControlGroup() ? 0 : state.quizzes.length;
 
   content.innerHTML = `
     <section class="grid">
       ${metric("Courses", courseCount)}
       ${metric("Learning Resources", resourceCount)}
+      ${isControlGroup() ? "" : metric("Practicals", practicalCount)}
       ${isControlGroup() ? "" : metric("Discussions", discussionCount)}
-      ${isControlGroup() ? "" : metric("Assessments", quizCount)}
+      ${isControlGroup() ? "" : metric("Tests", testCount)}
       ${metric("Research ID", state.user.research_id, "blue")}
       ${metric("Study Group", state.user.study_group)}
     </section>
+
+    ${renderPerformancePanel()}
 
     <section class="grid two">
       <article class="panel stack">
@@ -381,19 +504,19 @@ function renderOverview() {
         </div>
       </article>
       <article class="panel stack">
-        <h2>Current Assessments</h2>
+        <h2>Current Tests</h2>
         <div class="list">
           ${state.quizzes
             .slice(0, 4)
             .map(
-              (quiz) => `
+              (test) => `
                 <div class="card compact">
                   <div class="card-header">
                     <div>
-                      <h3>${escapeHtml(quiz.title)}</h3>
-                      <p class="muted">${escapeHtml(quiz.description || "")}</p>
+                      <h3>${escapeHtml(test.title)}</h3>
+                      <p class="muted">${escapeHtml(test.description || "")}</p>
                     </div>
-                    <span class="badge gold">${escapeHtml(quiz.quiz_type)}</span>
+                    <span class="badge gold">test</span>
                   </div>
                 </div>
               `
@@ -466,13 +589,17 @@ async function loadMyCoursesProgress(joined) {
   content.innerHTML = joined
     .map((course) => {
       const courseResources = state.resources.filter((r) => String(r.course_id) === String(course.id));
-      const courseQuizzes = state.quizzes.filter((q) => String(q.course_id) === String(course.id));
+      const courseTests = state.quizzes.filter((q) => String(q.course_id) === String(course.id));
+      const coursePracticals = state.practicals.filter((p) => String(p.course_id) === String(course.id));
       const courseDiscussions = state.discussions.filter((d) => String(d.course_id) === String(course.id));
       const progress = progressMap[course.id] || {};
+      const performance = performanceForCourse(course.id);
 
       const resourcePct = course.resource_count ? Math.round((progress.resources_viewed || 0) / course.resource_count * 100) : 0;
-      const quizPct = courseQuizzes.length ? Math.round((progress.quizzes_taken || 0) / courseQuizzes.length * 100) : 0;
-      const quizAvg = progress.quiz_average_percentage != null ? `${progress.quiz_average_percentage}% avg` : "";
+      const testPct = courseTests.length ? Math.round((progress.quizzes_taken || 0) / courseTests.length * 100) : 0;
+      const testAvg = progress.quiz_average_percentage != null ? `${progress.quiz_average_percentage}% avg` : "";
+      const practicalPct = coursePracticals.length ? Math.round((progress.practicals_completed || 0) / coursePracticals.length * 100) : 0;
+      const practicalAvg = progress.practical_average_percentage != null ? `${progress.practical_average_percentage}% avg` : "";
 
       return `
         <article class="card stack">
@@ -482,6 +609,7 @@ async function loadMyCoursesProgress(joined) {
                 <span class="badge">${escapeHtml(course.code)}</span>
                 <span class="badge blue">${course.member_count} members</span>
                 <span class="badge">${course.resource_count} resources</span>
+                ${performanceBadge(performance)}
               </div>
               <h2>${escapeHtml(course.title)}</h2>
               <p class="muted">${escapeHtml(course.description)}</p>
@@ -497,10 +625,15 @@ async function loadMyCoursesProgress(joined) {
             ${
               !isControlGroup()
                 ? `
-            <div class="progress-item" title="Quizzes taken">
-              <span class="muted">Quizzes</span>
-              <div class="progress-bar"><div class="progress-fill gold" style="width:${quizPct}%"></div></div>
-              <small>${progress.quizzes_taken || 0}/${courseQuizzes.length || 0} ${quizAvg}</small>
+            <div class="progress-item" title="Tests taken">
+              <span class="muted">Tests</span>
+              <div class="progress-bar"><div class="progress-fill gold" style="width:${testPct}%"></div></div>
+              <small>${progress.quizzes_taken || 0}/${courseTests.length || 0} ${testAvg}</small>
+            </div>
+            <div class="progress-item" title="Practical submissions">
+              <span class="muted">Practicals</span>
+              <div class="progress-bar"><div class="progress-fill purple" style="width:${practicalPct}%"></div></div>
+              <small>${progress.practicals_completed || 0}/${coursePracticals.length || 0} ${practicalAvg}</small>
             </div>
             <div class="progress-item" title="Discussion participation">
               <span class="muted">Discussions</span>
@@ -546,18 +679,18 @@ async function loadMyCoursesProgress(joined) {
             !isControlGroup()
               ? `
           <details open>
-            <summary><strong>Quizzes</strong> <span class="badge">${courseQuizzes.length}</span></summary>
+            <summary><strong>Tests</strong> <span class="badge">${courseTests.length}</span></summary>
             <div class="list" style="margin-top:10px">
               ${
-                courseQuizzes.length
-                  ? courseQuizzes
+                courseTests.length
+                  ? courseTests
                       .map(
                         (q) => `
                           <div class="card compact">
                             <div class="card-header">
                               <div>
                                 <div class="badge-row">
-                                  <span class="badge gold">${escapeHtml(q.quiz_type)}</span>
+                                  <span class="badge gold">test</span>
                                   <span class="badge">${q.question_count} questions</span>
                                   <span class="badge blue">${escapeHtml(q.round_size || q.question_count)} per round</span>
                                 </div>
@@ -570,7 +703,37 @@ async function loadMyCoursesProgress(joined) {
                         `
                       )
                       .join("")
-                  : `<div class="empty">No quizzes yet.</div>`
+                  : `<div class="empty">No tests yet.</div>`
+              }
+            </div>
+          </details>
+
+          <details open>
+            <summary><strong>Practicals</strong> <span class="badge">${coursePracticals.length}</span></summary>
+            <div class="list" style="margin-top:10px">
+              ${
+                coursePracticals.length
+                  ? coursePracticals
+                      .map(
+                        (p) => `
+                          <div class="card compact">
+                            <div class="card-header">
+                              <div>
+                                <div class="badge-row">
+                                  <span class="badge purple">${escapeHtml(practicalTypeLabel(p.practical_type))}</span>
+                                  <span class="badge gold">${escapeHtml(p.difficulty)}</span>
+                                  <span class="badge">${p.best_percentage == null ? "Not attempted" : p.best_percentage + "% best"}</span>
+                                </div>
+                                <h3>${escapeHtml(p.title)}</h3>
+                                <p class="muted">${escapeHtml(p.prompt)}</p>
+                              </div>
+                              <button data-action="open-practicals" type="button">Practice</button>
+                            </div>
+                          </div>
+                        `
+                      )
+                      .join("")
+                  : `<div class="empty">No practicals yet.</div>`
               }
             </div>
           </details>
@@ -763,8 +926,144 @@ function renderDiscussions() {
   `;
 }
 
+function renderPracticals() {
+  setTitle("Practicals", "Coding and database practice");
+  const filtered = state.practicals.filter((exercise) => {
+    if (state.selectedCourse && String(exercise.course_id) !== String(state.selectedCourse)) return false;
+    if (state.selectedPracticalType && exercise.practical_type !== state.selectedPracticalType) return false;
+    return true;
+  });
+
+  content.innerHTML = `
+    <section class="toolbar">
+      <select id="course-filter">
+        <option value="">All joined courses</option>
+        ${canManageContent() ? courseOptions(state.selectedCourse) : joinedCourseOptions(state.selectedCourse)}
+      </select>
+      <select id="practical-type-filter">
+        <option value="">All practicals</option>
+        <option value="python" ${state.selectedPracticalType === "python" ? "selected" : ""}>Python</option>
+        <option value="java" ${state.selectedPracticalType === "java" ? "selected" : ""}>Java</option>
+        <option value="database" ${state.selectedPracticalType === "database" ? "selected" : ""}>Database</option>
+      </select>
+      <button class="secondary" data-action="practical-history" type="button">Submission History</button>
+    </section>
+
+    <section class="list">
+      ${
+        filtered.length
+          ? filtered.map((exercise) => renderPracticalCard(exercise)).join("")
+          : `<div class="empty">Join a course to see available coding and database practicals.</div>`
+      }
+    </section>
+  `;
+}
+
+function renderPracticalCard(exercise) {
+  const starter = exercise.starter_code || "";
+  return `
+    <article class="card stack">
+      <div class="card-header">
+        <div>
+          <div class="badge-row">
+            <span class="badge">${escapeHtml(exercise.course_code || "")}</span>
+            <span class="badge purple">${escapeHtml(practicalTypeLabel(exercise.practical_type))}</span>
+            <span class="badge gold">${escapeHtml(exercise.difficulty)}</span>
+            <span class="badge">${exercise.check_count} checks</span>
+            <span class="badge blue">${exercise.best_percentage == null ? "No score yet" : exercise.best_percentage + "% best"}</span>
+          </div>
+          <h2>${escapeHtml(exercise.title)}</h2>
+          <p>${escapeHtml(exercise.prompt)}</p>
+          ${exercise.expected_output ? `<p class="muted">Expected: ${escapeHtml(exercise.expected_output)}</p>` : ""}
+        </div>
+      </div>
+      <form class="form-stack" data-form="practical-submit" data-id="${exercise.id}">
+        <label>
+          Workspace
+          <textarea class="code-editor" name="submitted_code" rows="10" spellcheck="false">${escapeHtml(starter)}</textarea>
+        </label>
+        <button type="submit">Submit Practical</button>
+      </form>
+    </article>
+  `;
+}
+
+function renderPracticalResult(result) {
+  content.innerHTML = `
+    <section class="stack">
+      <article class="panel stack">
+        <div class="grid two">
+          ${metric("Score", `${result.score} / ${result.total_points}`)}
+          ${metric("Percentage", `${result.percentage}%`, result.percentage < 50 ? "danger" : "")}
+        </div>
+        <div class="badge-row">
+          <span class="badge purple">${escapeHtml(practicalTypeLabel(result.practical_type))}</span>
+          <span class="badge blue">${escapeHtml(result.exercise_title)}</span>
+          <span class="badge">${escapeHtml(result.course_code || "")}</span>
+        </div>
+      </article>
+      <article class="panel stack">
+        <h2>Feedback</h2>
+        <div class="list">
+          ${(result.feedback || [])
+            .map(
+              (item) => `
+                <div class="card compact ${item.passed ? "correct" : "wrong"}">
+                  <strong>${escapeHtml(item.label)}</strong>
+                  <p class="muted">${escapeHtml(item.message)}</p>
+                </div>
+              `
+            )
+            .join("")}
+        </div>
+        ${result.solution_notes ? `<p class="muted">${escapeHtml(result.solution_notes)}</p>` : ""}
+      </article>
+      <div class="toolbar">
+        <button data-action="open-practicals" type="button">Back to Practicals</button>
+        <button class="secondary" data-action="practical-history" type="button">View History</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderPracticalHistory(attempts) {
+  setTitle("Practical History", "Coding and database practice");
+  content.innerHTML = `
+    <section class="stack">
+      <div class="toolbar">
+        <button data-action="open-practicals" type="button">Back to Practicals</button>
+      </div>
+      <div class="list">
+        ${
+          attempts.length
+            ? attempts
+                .map(
+                  (attempt) => `
+                    <article class="card">
+                      <div class="card-header">
+                        <div>
+                          <div class="badge-row">
+                            <span class="badge">${escapeHtml(attempt.course_code || "")}</span>
+                            <span class="badge purple">${escapeHtml(practicalTypeLabel(attempt.practical_type))}</span>
+                            <span class="badge blue">${attempt.percentage}%</span>
+                          </div>
+                          <h2>${escapeHtml(attempt.exercise_title)}</h2>
+                          <p class="muted">Score: ${attempt.score}/${attempt.total_points} · ${new Date(attempt.completed_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">No practical submissions yet.</div>`
+        }
+      </div>
+    </section>
+  `;
+}
+
 function renderQuizzes() {
-  setTitle("Quizzes", "Academic performance");
+  setTitle("Tests", "Academic performance");
 
   if (state.quizPhase === "active") {
     renderQuizActive();
@@ -781,30 +1080,34 @@ function renderQuizList() {
   content.innerHTML = `
     <section class="split">
       <div class="list">
-        ${state.quizzes
-          .map(
-            (quiz) => `
+        ${
+          state.quizzes.length
+            ? state.quizzes
+                .map(
+                  (test) => `
               <article class="card">
                 <div class="card-header">
                   <div>
                     <div class="badge-row">
-                      <span class="badge gold">${escapeHtml(quiz.quiz_type)}</span>
-                      <span class="badge">${quiz.question_count} questions</span>
-                      <span class="badge blue">${escapeHtml(quiz.round_size || quiz.question_count)} per round</span>
+                      <span class="badge gold">test</span>
+                      <span class="badge">${test.question_count} questions</span>
+                      <span class="badge blue">${escapeHtml(test.round_size || test.question_count)} per round</span>
                     </div>
-                    <h2>${escapeHtml(quiz.title)}</h2>
-                    <p class="muted">${escapeHtml(quiz.description || "")}</p>
+                    <h2>${escapeHtml(test.title)}</h2>
+                    <p class="muted">${escapeHtml(test.description || "")}</p>
                   </div>
-                  <button data-action="open-quiz" data-id="${quiz.id}" type="button">Open</button>
+                  <button data-action="open-quiz" data-id="${test.id}" type="button">Open</button>
                 </div>
               </article>
             `
-          )
-          .join("")}
+                )
+                .join("")
+            : `<div class="empty">No tests are available for your joined courses yet.</div>`
+        }
       </div>
       <aside class="panel stack">
-        <h2>Quiz Results</h2>
-        <p class="muted">View your past quiz attempts and detailed results.</p>
+        <h2>Test Results</h2>
+        <p class="muted">View past attempts and detailed results.</p>
         <button data-action="quiz-history" type="button">View History</button>
       </aside>
     </section>
@@ -879,7 +1182,7 @@ function renderQuizResults() {
           </div>
         </div>
         <div class="toolbar">
-          <span class="badge gold">${escapeHtml(r.quiz_type)}</span>
+          <span class="badge gold">test</span>
           <span class="badge blue">${escapeHtml(r.quiz_title)}</span>
         </div>
       </article>
@@ -911,7 +1214,7 @@ function renderQuizResults() {
       </article>
 
       <div class="toolbar">
-        <button data-action="back-to-quizzes" type="button">Back to Quizzes</button>
+        <button data-action="back-to-quizzes" type="button">Back to Tests</button>
         <button class="secondary" data-action="quiz-history" type="button">View All Results</button>
       </div>
     </section>
@@ -1053,7 +1356,7 @@ async function renderTeaching() {
                     <span class="badge">${escapeHtml(c.code)}</span>
                     <span class="badge blue">${c.member_count} students</span>
                     <span class="badge">${c.resource_count} resources</span>
-                    <span class="badge gold">${c.quiz_count} quizzes</span>
+                    <span class="badge gold">${c.quiz_count} tests</span>
                     <span class="badge">${c.discussion_count} discussions</span>
                   </div>
                   <h2>${escapeHtml(c.title)}</h2>
@@ -1078,8 +1381,8 @@ function renderCourseStats(stats) {
           ${metric("Students", stats.member_count)}
           ${metric("Experimental", stats.experimental_count, "blue")}
           ${metric("Control", stats.control_count)}
-          ${metric("Quiz Attempts", stats.quiz_attempts)}
-          ${metric("Avg Quiz %", stats.quiz_average_percentage != null ? stats.quiz_average_percentage + "%" : "N/A")}
+          ${metric("Test Attempts", stats.quiz_attempts)}
+          ${metric("Avg Test %", stats.quiz_average_percentage != null ? stats.quiz_average_percentage + "%" : "N/A")}
           ${metric("Resource Views", stats.resource_view_count)}
           ${metric("Threads", stats.thread_count)}
           ${metric("Replies", stats.reply_count)}
@@ -1101,7 +1404,7 @@ function renderCourseStats(stats) {
         stats.recent_attempts && stats.recent_attempts.length
           ? `
             <article class="panel stack">
-              <h2>Recent Quiz Attempts</h2>
+              <h2>Recent Test Attempts</h2>
               <div class="list">
                 ${stats.recent_attempts
                   .map(
@@ -1112,7 +1415,7 @@ function renderCourseStats(stats) {
                             <div class="badge-row">
                               <span class="badge blue">${escapeHtml(a.research_id)}</span>
                               <span class="badge">${escapeHtml(a.user_name)}</span>
-                              <span class="badge gold">${escapeHtml(a.quiz_type)}</span>
+                              <span class="badge gold">test</span>
                             </div>
                             <p><strong>${escapeHtml(a.quiz_title)}</strong></p>
                             <p class="muted">Score: ${a.score}/${a.total_points} (${a.percentage}%) &middot; Study group: ${escapeHtml(a.study_group)}</p>
@@ -1145,8 +1448,8 @@ async function renderResearch() {
       ${metric("Participants", dashboard.users)}
       ${metric("Experimental", dashboard.experimental_users)}
       ${metric("Control", dashboard.control_users)}
-      ${metric("Quiz Attempts", dashboard.quiz_attempts)}
-      ${metric("Average Quiz %", dashboard.average_quiz_percentage)}
+      ${metric("Test Attempts", dashboard.quiz_attempts)}
+      ${metric("Average Test %", dashboard.average_quiz_percentage)}
       ${metric("Engagement Avg", dashboard.average_engagement_rating)}
       ${metric("Activity Events", dashboard.activity_events)}
       ${metric("Feedback Items", dashboard.feedback_items)}
@@ -1192,6 +1495,7 @@ async function render() {
   if (state.view === "courses") renderCourses();
   if (state.view === "mycourses") renderMyCourses();
   if (state.view === "resources") renderResources();
+  if (state.view === "practicals") renderPracticals();
   if (state.view === "discussions") renderDiscussions();
   if (state.view === "quizzes") renderQuizzes();
   if (state.view === "surveys") await renderSurveys();
@@ -1219,8 +1523,13 @@ async function refreshQuizzes() {
   state.quizzes = await api("/api/quizzes");
 }
 
+async function refreshPracticals() {
+  state.practicals = await api("/api/practicals");
+}
+
 async function setView(view) {
   state.view = view;
+  state.mobileMenuOpen = false;
   if (view !== "quizzes") {
     resetQuizState();
   }
@@ -1336,10 +1645,27 @@ nav.addEventListener("click", async (event) => {
   await setView(button.dataset.view);
 });
 
+sidebarToggle?.addEventListener("click", () => {
+  state.sidebarCollapsed = !state.sidebarCollapsed;
+  localStorage.setItem("cop_sidebar_collapsed", state.sidebarCollapsed ? "1" : "0");
+  applySidebarState();
+});
+
+mobileMenuBtn?.addEventListener("click", () => {
+  state.mobileMenuOpen = !state.mobileMenuOpen;
+  applySidebarState();
+});
+
 content.addEventListener("change", async (event) => {
   if (event.target.id === "course-filter") {
     state.selectedCourse = event.target.value;
-    renderResources();
+    if (state.view === "practicals") renderPracticals();
+    else renderResources();
+  }
+
+  if (event.target.id === "practical-type-filter") {
+    state.selectedPracticalType = event.target.value;
+    renderPracticals();
   }
 
   if (event.target.name === "quiz-answer" && state.quizPhase === "active") {
@@ -1415,10 +1741,10 @@ content.addEventListener("click", async (event) => {
     }
 
     if (action === "open-quiz") {
-      const quiz = await api(`/api/quizzes/${id}`);
+      const test = await api(`/api/quizzes/${id}`);
       state.view = "quizzes";
-      state.activeQuiz = quiz;
-      state.quizQuestions = quiz.questions || [];
+      state.activeQuiz = test;
+      state.quizQuestions = test.questions || [];
       state.quizIndex = 0;
       state.quizAnswers = {};
       state.quizPhase = "active";
@@ -1451,6 +1777,19 @@ content.addEventListener("click", async (event) => {
       await refreshQuizzes();
       renderNav();
       renderQuizList();
+    }
+
+    if (action === "open-practicals") {
+      state.view = "practicals";
+      await refreshPracticals();
+      await refreshPerformance();
+      renderNav();
+      renderPracticals();
+    }
+
+    if (action === "practical-history") {
+      const attempts = await api("/api/practicals/attempts");
+      renderPracticalHistory(attempts);
     }
 
     if (action === "export") {
@@ -1535,6 +1874,18 @@ content.addEventListener("submit", async (event) => {
       showMessage("Discussion posted.");
     }
 
+    if (type === "practical-submit") {
+      const payload = formData(form);
+      const result = await api(`/api/practicals/${form.dataset.id}/submit`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      await refreshPracticals();
+      await refreshPerformance();
+      renderPracticalResult(result);
+      showMessage(`Practical submitted. Score: ${result.percentage}%.`);
+    }
+
     if (type === "reply") {
       await api(`/api/discussions/${form.dataset.id}/replies`, {
         method: "POST",
@@ -1599,12 +1950,12 @@ content.addEventListener("submit", async (event) => {
 });
 
 function renderQuizHistoryList(attempts) {
-  setTitle("Quiz History", "Past attempts");
+  setTitle("Test History", "Past attempts");
   if (!attempts.length) {
     content.innerHTML = `
       <section class="panel stack">
-        <div class="empty">No quiz attempts yet.</div>
-        <button data-action="back-to-quizzes" type="button">Back to Quizzes</button>
+        <div class="empty">No test attempts yet.</div>
+        <button data-action="back-to-quizzes" type="button">Back to Tests</button>
       </section>
     `;
     return;
@@ -1612,7 +1963,7 @@ function renderQuizHistoryList(attempts) {
   content.innerHTML = `
     <section class="stack">
       <div class="toolbar">
-        <button data-action="back-to-quizzes" type="button">Back to Quizzes</button>
+        <button data-action="back-to-quizzes" type="button">Back to Tests</button>
       </div>
       <div class="list">
         ${attempts
@@ -1622,7 +1973,7 @@ function renderQuizHistoryList(attempts) {
                 <div class="card-header">
                   <div>
                     <div class="badge-row">
-                      <span class="badge gold">${escapeHtml(a.quiz_type)}</span>
+                      <span class="badge gold">test</span>
                       <span class="badge blue">${escapeHtml(a.percentage)}%</span>
                     </div>
                     <h2>${escapeHtml(a.quiz_title)}</h2>

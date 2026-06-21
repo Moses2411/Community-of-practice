@@ -171,18 +171,26 @@
     <!-- ====== APP ====== -->
     <main id="app-screen" class="app-shell hidden">
       <aside class="sidebar">
-        <div class="brand-block">
-          <span class="brand-mark">CoP</span>
-          <div>
-            <strong>ABU CoP</strong>
-            <small>Research Platform</small>
+        <div class="sidebar-head">
+          <div class="brand-block">
+            <span class="brand-mark">CoP</span>
+            <div class="brand-text">
+              <strong>ABU CoP</strong>
+              <small>Research Platform</small>
+            </div>
           </div>
+          <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Toggle menu" aria-expanded="true">
+            <span></span>
+          </button>
         </div>
         <nav id="nav"></nav>
       </aside>
 
       <section class="workspace">
         <header class="topbar">
+          <button id="mobile-menu-btn" class="mobile-menu-btn" type="button" aria-label="Open menu">
+            <span></span>
+          </button>
           <div>
             <p id="view-kicker" class="eyebrow">Workspace</p>
             <h1 id="view-title">Overview</h1>

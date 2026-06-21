@@ -1,19 +1,15 @@
-from datetime import datetime
-from pathlib import Path
+import json
 
-from sqlalchemy import func, inspect, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.config import QUIZ_ROUND_SIZE
 from app.course_banks import COURSE_QUESTION_BANK
-from app.utils import generate_research_id, hash_password, log_activity, normalized_email
-from db.database import Base, engine, SessionLocal
+from app.utils import hash_password, normalized_email
+from db.database import engine
 from model import (
-    ConsentRecord,
     Course,
+    PracticalExercise,
     Quiz,
-    QuizAnswer,
-    QuizAttempt,
     QuizQuestion,
     Resource,
     Survey,
@@ -22,11 +18,25 @@ from model import (
 )
 
 
-def ensure_seed_quiz(db: Session, course: Course, quiz_type: str, title: str, description: str) -> Quiz:
-    existing = db.scalar(select(Quiz).where(Quiz.course_id == course.id, Quiz.quiz_type == quiz_type))
+def ensure_seed_quiz(db: Session, course: Course, title: str, description: str) -> Quiz:
+    existing = db.scalar(select(Quiz).where(Quiz.course_id == course.id, Quiz.quiz_type == "test"))
     if existing:
+        existing.title = title
+        existing.description = description
         return existing
-    quiz = Quiz(course_id=course.id, title=title, quiz_type=quiz_type, description=description)
+
+    reusable = db.scalar(
+        select(Quiz)
+        .where(Quiz.course_id == course.id, Quiz.quiz_type.in_(["practice", "pretest", "posttest"]))
+        .order_by(Quiz.quiz_type == "practice")
+    )
+    if reusable:
+        reusable.title = title
+        reusable.quiz_type = "test"
+        reusable.description = description
+        return reusable
+
+    quiz = Quiz(course_id=course.id, title=title, quiz_type="test", description=description)
     db.add(quiz)
     db.flush()
     return quiz
@@ -47,31 +57,178 @@ def seed_quiz_banks(db: Session, courses_by_code: dict[str, Course]) -> None:
         if course is None:
             continue
 
-        pretest = ensure_seed_quiz(
+        test = ensure_seed_quiz(
             db,
             course,
-            "pretest",
-            f"{course.title} Pre-test",
-            "Seven-question baseline assessment for this course before the learning intervention.",
+            f"{course.title} Test",
+            "Rotating assessment drawn from a larger course question bank. Each attempt receives a fresh question round.",
         )
-        practice = ensure_seed_quiz(
-            db,
-            course,
-            "practice",
-            f"{course.title} Practice Rounds",
-            "Randomized seven-question practice rounds drawn from a larger university-level question bank.",
-        )
-        posttest = ensure_seed_quiz(
-            db,
-            course,
-            "posttest",
-            f"{course.title} Post-test",
-            "Seven-question outcome assessment for this course after the learning intervention.",
-        )
+        ensure_seed_questions(db, test, bank)
+        archive_legacy_quizzes(db, course, test.id)
 
-        ensure_seed_questions(db, pretest, bank)
-        ensure_seed_questions(db, practice, bank)
-        ensure_seed_questions(db, posttest, bank)
+
+def archive_legacy_quizzes(db: Session, course: Course, active_quiz_id: int) -> None:
+    legacy_quizzes = db.scalars(
+        select(Quiz).where(
+            Quiz.course_id == course.id,
+            Quiz.id != active_quiz_id,
+            Quiz.quiz_type.in_(["pretest", "practice", "posttest"]),
+        )
+    ).all()
+    for quiz in legacy_quizzes:
+        if quiz.attempts:
+            quiz.quiz_type = "archived"
+            quiz.title = f"Archived - {quiz.title}"
+        else:
+            db.delete(quiz)
+
+
+PRACTICAL_EXERCISE_SEEDS = [
+    {
+        "course_code": "COSC101",
+        "title": "Python Basics: Student Summary",
+        "practical_type": "python",
+        "difficulty": "beginner",
+        "prompt": "Write a Python function named student_summary(name, level) that returns a readable sentence containing both values.",
+        "starter_code": "def student_summary(name, level):\n    # return a sentence using name and level\n    pass",
+        "expected_output": "student_summary('Amina', '200 Level') returns a sentence containing Amina and 200 Level.",
+        "solution_notes": "Use a function definition, parameters, and string formatting or concatenation to build the sentence.",
+        "checks": [
+            {"label": "Defines student_summary", "contains_all": ["def student_summary"]},
+            {"label": "Uses both parameters", "contains_all": ["name", "level"]},
+            {"label": "Returns a value", "contains_all": ["return"]},
+        ],
+    },
+    {
+        "course_code": "COSC211",
+        "title": "Java Methods: Average Score",
+        "practical_type": "java",
+        "difficulty": "beginner",
+        "prompt": "Create a Java method named averageScore that receives three integer scores and returns their average as a double.",
+        "starter_code": "public class Practice {\n    public static double averageScore(int a, int b, int c) {\n        // return the average as a double\n        return 0;\n    }\n}",
+        "expected_output": "averageScore(60, 75, 90) should return 75.0.",
+        "solution_notes": "Use a double calculation such as (a + b + c) / 3.0 so integer division does not lose decimals.",
+        "checks": [
+            {"label": "Defines averageScore", "contains_all": ["averageScore", "double"]},
+            {"label": "Accepts three integer inputs", "contains_all": ["int a", "int b", "int c"]},
+            {"label": "Avoids integer division", "contains_any": ["/ 3.0", "/3.0", "(double)"]},
+        ],
+    },
+    {
+        "course_code": "COSC212",
+        "title": "Java OOP: Course Class",
+        "practical_type": "java",
+        "difficulty": "intermediate",
+        "prompt": "Define a Course class with private code and title fields, a constructor, and a getDisplayName method that combines both fields.",
+        "starter_code": "public class Course {\n    // private fields\n\n    public Course(String code, String title) {\n    }\n\n    public String getDisplayName() {\n        return \"\";\n    }\n}",
+        "expected_output": "new Course('COSC211', 'OOP').getDisplayName() should include COSC211 and OOP.",
+        "solution_notes": "Encapsulate fields with private access and assign constructor parameters using this.code and this.title.",
+        "checks": [
+            {"label": "Uses private fields", "contains_all": ["private String code", "private String title"]},
+            {"label": "Defines constructor", "contains_all": ["public Course", "this.code", "this.title"]},
+            {"label": "Returns display text", "contains_all": ["getDisplayName", "return"]},
+        ],
+    },
+    {
+        "course_code": "COSC301",
+        "title": "Python Data Structures: Stack",
+        "practical_type": "python",
+        "difficulty": "intermediate",
+        "prompt": "Implement push_item(stack, item) and pop_item(stack) using a Python list as a stack.",
+        "starter_code": "def push_item(stack, item):\n    pass\n\n\ndef pop_item(stack):\n    pass",
+        "expected_output": "push_item should append to the list; pop_item should remove and return the most recent item.",
+        "solution_notes": "A stack is last-in, first-out. Python list append and pop are enough for this exercise.",
+        "checks": [
+            {"label": "Defines push_item", "contains_all": ["def push_item"]},
+            {"label": "Uses append for push", "contains_all": [".append("]},
+            {"label": "Uses pop for removal", "contains_all": [".pop("]},
+        ],
+    },
+    {
+        "course_code": "COSC307",
+        "title": "Python Web Helper: Validate Email",
+        "practical_type": "python",
+        "difficulty": "beginner",
+        "prompt": "Write a function is_valid_email(email) that returns True only when the text contains @ and a dot after @.",
+        "starter_code": "def is_valid_email(email):\n    pass",
+        "expected_output": "is_valid_email('student@abu.edu.ng') should return True; is_valid_email('student') should return False.",
+        "solution_notes": "Check for @, split the domain portion, and confirm the domain includes a dot.",
+        "checks": [
+            {"label": "Defines is_valid_email", "contains_all": ["def is_valid_email"]},
+            {"label": "Checks for @", "contains_all": ["@"]},
+            {"label": "Returns booleans", "contains_any": ["True", "False"]},
+        ],
+    },
+    {
+        "course_code": "COSC309",
+        "title": "SQL Select: High Scoring Students",
+        "practical_type": "database",
+        "difficulty": "beginner",
+        "prompt": "Write an SQL query that selects student names and scores from a results table where score is at least 70, ordered from highest score to lowest.",
+        "starter_code": "SELECT \nFROM results\nWHERE \nORDER BY ;",
+        "expected_output": "The query should return name and score columns for rows with score >= 70 in descending score order.",
+        "solution_notes": "Use SELECT name, score, WHERE score >= 70, and ORDER BY score DESC.",
+        "checks": [
+            {"label": "Selects name and score", "contains_all": ["select", "name", "score"], "case_sensitive": False},
+            {"label": "Filters by score", "contains_any": ["score >= 70", "score>=70"], "case_sensitive": False},
+            {"label": "Orders descending", "contains_all": ["order by", "desc"], "case_sensitive": False},
+        ],
+    },
+    {
+        "course_code": "COSC406",
+        "title": "SQL Join: Course Enrolment",
+        "practical_type": "database",
+        "difficulty": "intermediate",
+        "prompt": "Write an SQL query that returns each student's name with the course code they enrolled in using students, enrolments, and courses tables.",
+        "starter_code": "SELECT \nFROM students\nJOIN enrolments ON \nJOIN courses ON ;",
+        "expected_output": "Rows should include student name and course code from joined tables.",
+        "solution_notes": "Join students to enrolments by student id, then join courses by course id.",
+        "checks": [
+            {"label": "Uses joins", "contains_all": ["join enrolments", "join courses"], "case_sensitive": False},
+            {"label": "Returns student name", "contains_all": ["name"], "case_sensitive": False},
+            {"label": "Returns course code", "contains_all": ["code"], "case_sensitive": False},
+        ],
+    },
+    {
+        "course_code": "COSC401",
+        "title": "Python Algorithms: Linear Search",
+        "practical_type": "python",
+        "difficulty": "intermediate",
+        "prompt": "Write linear_search(values, target) that returns the index of target in values, or -1 when target is absent.",
+        "starter_code": "def linear_search(values, target):\n    pass",
+        "expected_output": "linear_search([4, 8, 10], 8) should return 1; missing values should return -1.",
+        "solution_notes": "Loop through the list with indexes and compare each value with target.",
+        "checks": [
+            {"label": "Defines linear_search", "contains_all": ["def linear_search"]},
+            {"label": "Loops through values", "contains_any": ["for ", "while "]},
+            {"label": "Handles not found", "contains_all": ["-1"]},
+        ],
+    },
+]
+
+
+def seed_practical_exercises(db: Session, courses_by_code: dict[str, Course]) -> None:
+    existing = {
+        (exercise.course_id, exercise.title)
+        for exercise in db.scalars(select(PracticalExercise)).all()
+    }
+    for item in PRACTICAL_EXERCISE_SEEDS:
+        course = courses_by_code.get(item["course_code"])
+        if course is None or (course.id, item["title"]) in existing:
+            continue
+        db.add(
+            PracticalExercise(
+                course_id=course.id,
+                title=item["title"],
+                practical_type=item["practical_type"],
+                difficulty=item["difficulty"],
+                prompt=item["prompt"],
+                starter_code=item["starter_code"],
+                expected_output=item["expected_output"],
+                solution_notes=item["solution_notes"],
+                checks_json=json.dumps(item["checks"]),
+            )
+        )
 
 
 def seed_database(db: Session) -> None:
@@ -90,7 +247,7 @@ def seed_database(db: Session) -> None:
             role="researcher",
             study_group="experimental",
             programme="Computer Science Education",
-            department="Computer Science",
+            department="Science Education",
             level="Research",
             interests="Community of practice analytics",
         )
@@ -103,91 +260,91 @@ def seed_database(db: Session) -> None:
                 title="Introduction To Computing",
                 code="COSC101",
                 description="Computer systems, hardware components, operating systems, office applications, and internet tools.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Object-Oriented Programming I",
                 code="COSC211",
                 description="Introduction to object-orientation, data types, control structures, arrays, recursion, and inheritance.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Data Structures and Algorithm",
                 code="COSC301",
                 description="Big-O analysis, stacks, queues, lists, trees, graphs, hash tables, and algorithm design strategies.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Database Management Systems",
                 code="COSC309",
                 description="Conceptual modeling, relational theory, SQL, normalization, security, query processing, and transactions.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Web Applications Engineering I",
                 code="COSC307",
                 description="Web architecture, XHTML, CSS, JavaScript, DOM, client-server interaction, and multimedia integration.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Operating Systems",
                 code="COSC411",
                 description="Process management, CPU scheduling, memory and virtual memory, file systems, I/O, and security.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Discrete Structures",
                 code="COSC203",
                 description="Functions, relations, counting, graphs, trees, discrete probability, and recurrence relations.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Organization and Assembly Language",
                 code="COSC204",
                 description="Computer organization, number representation, assembly programming, addressing modes, and interrupts.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Digital Logic Design",
                 code="COSC205",
                 description="Boolean algebra, combinational and sequential circuits, flip-flops, multiplexers, and memory elements.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Human Computer Interaction",
                 code="COSC206",
                 description="HCI foundations, GUI principles, usability evaluation, user-centered design, and interaction design.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Introduction to Artificial Intelligence",
                 code="COSC208",
                 description="Problem-solving, knowledge representation, expert systems, natural language processing, and machine learning.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Object-Oriented Programming II",
                 code="COSC212",
                 description="Advanced OOP, polymorphism, interfaces, packages, API usage, recursion, and event-driven programming.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Computer Architecture",
                 code="COSC303",
                 description="Memory hierarchy, cache, pipelining, superscalar architecture, RISC, and parallel architectures.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Systems Analysis and Design",
                 code="COSC305",
                 description="SDLC, UML modelling, use cases, sequence diagrams, class diagrams, CASE tools, and project management.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Organization of Programming Languages",
                 code="COSC311",
                 description="Syntax and semantics, data types, control structures, subprograms, exception handling, and programming paradigms.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Research Project in Computer Science Education",
@@ -199,67 +356,67 @@ def seed_database(db: Session) -> None:
                 title="Algorithms and Complexity Analysis",
                 code="COSC401",
                 description="Algorithm analysis, divide-and-conquer, greedy algorithms, dynamic programming, NP-completeness.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Formal Methods in Software Development",
                 code="COSC402",
                 description="Z notation, Hoare logic, BNF, model checking, finite state machines, temporal logic, and verification.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Software Engineering",
                 code="COSC403",
                 description="Design patterns, coupling, cohesion, MVC, refactoring, UML, information hiding, and software process models.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Network Design and Management",
                 code="COSC404",
                 description="Network design methodologies, SNMP, RMON, MIB, fault management, configuration management, and NOC operations.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Web Applications Engineering II",
                 code="COSC405",
                 description="Server-side development, session management, input validation, cookies, database integration, and web security.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Advanced Database Systems",
                 code="COSC406",
                 description="Concurrency control, distributed databases, CAP theorem, object-oriented databases, query optimisation, and recovery.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Data Communications and Networks",
                 code="COSC407",
                 description="OSI model, TCP/IP, routing, DNS, Ethernet, subnetting, network topologies, and data link protocols.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Compiler Construction",
                 code="COSC408",
                 description="Lexical analysis, parsing, semantic analysis, symbol tables, intermediate code, optimisation, and code generation.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Professional and Social Aspects of Computing",
                 code="COSC409",
                 description="Professional ethics, intellectual property, data protection, computer crime, privacy, and social impact of IT.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Computational Science and Numerical Methods",
                 code="COSC413",
                 description="High-performance computing, parallel programming, scientific visualization, GPU computing, and numerical methods.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
             Course(
                 title="Simulation Methodology",
                 code="COSC416",
                 description="Discrete-event simulation, random number generation, queuing theory, GPSS, output analysis, and model validation.",
-                facilitator="Computer Science Education Facilitator",
+                facilitator="Computer Science Facilitator",
             ),
         ]
         db.add_all(courses)
@@ -329,6 +486,7 @@ def seed_database(db: Session) -> None:
         db.flush()
 
     seed_quiz_banks(db, courses_by_code)
+    seed_practical_exercises(db, courses_by_code)
     seed_surveys(db)
     db.commit()
 

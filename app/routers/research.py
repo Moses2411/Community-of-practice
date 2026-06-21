@@ -208,17 +208,9 @@ def export_combined(db) -> tuple[list[str], list[list]]:
     users = db.scalars(select(User).order_by(User.research_id)).all()
     for user in users:
         attempts = user.quiz_attempts
-        pretest_scores = [
+        test_scores = [
             (a.score / a.total_points * 100) for a in attempts
-            if a.total_points and a.quiz.quiz_type == "pretest"
-        ]
-        posttest_scores = [
-            (a.score / a.total_points * 100) for a in attempts
-            if a.total_points and a.quiz.quiz_type == "posttest"
-        ]
-        practice_scores = [
-            (a.score / a.total_points * 100) for a in attempts
-            if a.total_points and a.quiz.quiz_type == "practice"
+            if a.total_points and a.quiz.quiz_type == "test"
         ]
         logs = user.activity_logs
         reflections = user.reflections
@@ -228,9 +220,7 @@ def export_combined(db) -> tuple[list[str], list[list]]:
                 user.research_id, user.study_group, user.level,
                 len(logs), len(user.memberships), len(user.resource_views),
                 len(user.threads), len(user.replies), len(attempts),
-                round(sum(pretest_scores) / len(pretest_scores), 2) if pretest_scores else None,
-                round(sum(practice_scores) / len(practice_scores), 2) if practice_scores else None,
-                round(sum(posttest_scores) / len(posttest_scores), 2) if posttest_scores else None,
+                round(sum(test_scores) / len(test_scores), 2) if test_scores else None,
                 round(sum(r.engagement_rating for r in reflections) / len(reflections), 2) if reflections else None,
                 round(sum(r.confidence_rating for r in reflections) / len(reflections), 2) if reflections else None,
                 round(
@@ -242,7 +232,7 @@ def export_combined(db) -> tuple[list[str], list[list]]:
     return (
         ["research_id", "study_group", "level", "activity_event_count", "topic_memberships",
          "resource_views", "discussion_threads", "discussion_replies", "quiz_attempts",
-         "pretest_avg_percent", "practice_avg_percent", "posttest_avg_percent",
+         "test_avg_percent",
          "reflection_engagement_avg", "reflection_confidence_avg", "external_academic_avg_percent"],
         rows,
     )

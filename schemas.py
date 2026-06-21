@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 Role = Literal["student", "facilitator", "researcher", "admin"]
 StudyGroup = Literal["experimental", "control"]
-QuizType = Literal["pretest", "practice", "posttest"]
+QuizType = Literal["test"]
 
 
 class UserCreate(BaseModel):
@@ -158,7 +158,7 @@ class DiscussionThreadOut(BaseModel):
 class QuizCreate(BaseModel):
     course_id: int
     title: str = Field(min_length=3, max_length=180)
-    quiz_type: QuizType = "practice"
+    quiz_type: QuizType = "test"
     description: str | None = None
 
 
@@ -221,6 +221,28 @@ class QuizAttemptOut(BaseModel):
     percentage: float
     seconds_spent: int
     completed_at: datetime
+
+
+class PracticalExerciseOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    course_id: int
+    title: str
+    practical_type: str
+    difficulty: str
+    prompt: str
+    starter_code: str | None
+    expected_output: str | None
+    solution_notes: str | None = None
+    check_count: int = 0
+    best_percentage: float | None = None
+    attempt_count: int = 0
+    created_at: datetime
+
+
+class PracticalSubmit(BaseModel):
+    submitted_code: str = Field(min_length=1)
 
 
 class ReflectionCreate(BaseModel):

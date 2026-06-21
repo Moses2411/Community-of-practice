@@ -19,6 +19,7 @@ from app.routers import (
     feedback,
     instructor,
     notifications,
+    practicals,
     quizzes,
     reflections,
     research,
@@ -67,6 +68,7 @@ app.include_router(resources.router)
 app.include_router(surveys.router)
 app.include_router(discussions.router)
 app.include_router(quizzes.router)
+app.include_router(practicals.router)
 app.include_router(reflections.router)
 app.include_router(feedback.router)
 app.include_router(activity.router)

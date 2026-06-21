@@ -34,6 +34,8 @@ def list_quizzes(
         query = query.where(Quiz.course_id.in_(joined_course_ids))
     if quiz_type is not None:
         query = query.where(Quiz.quiz_type == quiz_type)
+    else:
+        query = query.where(Quiz.quiz_type == "test")
     quizzes = db.scalars(query).all()
     return [serialize_quiz(quiz) for quiz in quizzes]
 
@@ -46,12 +48,12 @@ def create_quiz(payload: QuizCreate, db: SessionDep, current_user: ContentManage
     quiz = Quiz(
         course_id=payload.course_id,
         title=payload.title,
-        quiz_type=payload.quiz_type,
+        quiz_type="test",
         description=payload.description,
     )
     db.add(quiz)
     db.flush()
-    log_activity(db, current_user, "quiz_created", "quiz", quiz.id, {"quiz_type": payload.quiz_type})
+    log_activity(db, current_user, "quiz_created", "quiz", quiz.id, {"quiz_type": "test"})
     db.commit()
     db.refresh(quiz)
     return serialize_quiz(quiz)

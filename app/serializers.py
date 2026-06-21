@@ -1,7 +1,11 @@
+import json
+
 from model import (
     Course,
     DiscussionReply,
     DiscussionThread,
+    PracticalAttempt,
+    PracticalExercise,
     Quiz,
     QuizAttempt,
     QuizQuestion,
@@ -41,6 +45,7 @@ def serialize_course(course: Course, user_id: int | None = None) -> dict:
         "member_count": len(course.memberships),
         "resource_count": len(course.resources),
         "discussion_count": len(course.threads),
+        "practical_count": len(course.practical_exercises),
         "is_joined": is_joined,
     }
 
@@ -169,3 +174,63 @@ def quiz_attempt_response(attempt: QuizAttempt, include_answers: bool = False) -
             for answer in attempt.answers
         ]
     return payload
+
+
+def serialize_practical_exercise(
+    exercise: PracticalExercise,
+    user_id: int | None = None,
+    include_solution: bool = False,
+) -> dict:
+    checks = []
+    if exercise.checks_json:
+        try:
+            checks = json.loads(exercise.checks_json)
+        except json.JSONDecodeError:
+            checks = []
+
+    user_attempts = [attempt for attempt in exercise.attempts if attempt.user_id == user_id] if user_id else []
+    percentages = [
+        attempt.score / attempt.total_points * 100
+        for attempt in user_attempts
+        if attempt.total_points
+    ]
+
+    return {
+        "id": exercise.id,
+        "course_id": exercise.course_id,
+        "course_code": exercise.course.code if exercise.course else None,
+        "course_title": exercise.course.title if exercise.course else None,
+        "title": exercise.title,
+        "practical_type": exercise.practical_type,
+        "difficulty": exercise.difficulty,
+        "prompt": exercise.prompt,
+        "starter_code": exercise.starter_code,
+        "expected_output": exercise.expected_output,
+        "solution_notes": exercise.solution_notes if include_solution else None,
+        "check_count": len(checks),
+        "attempt_count": len(user_attempts),
+        "best_percentage": round(max(percentages), 1) if percentages else None,
+        "created_at": exercise.created_at,
+    }
+
+
+def practical_attempt_response(attempt: PracticalAttempt) -> dict:
+    try:
+        feedback = json.loads(attempt.feedback_json or "[]")
+    except json.JSONDecodeError:
+        feedback = []
+    percentage = (attempt.score / attempt.total_points * 100) if attempt.total_points else 0
+    return {
+        "id": attempt.id,
+        "exercise_id": attempt.exercise_id,
+        "exercise_title": attempt.exercise.title,
+        "course_id": attempt.exercise.course_id,
+        "course_code": attempt.exercise.course.code if attempt.exercise.course else None,
+        "practical_type": attempt.exercise.practical_type,
+        "score": attempt.score,
+        "total_points": attempt.total_points,
+        "percentage": round(percentage, 2),
+        "feedback": feedback,
+        "solution_notes": attempt.exercise.solution_notes,
+        "completed_at": attempt.completed_at,
+    }

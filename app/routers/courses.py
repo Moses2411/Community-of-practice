@@ -6,7 +6,18 @@ from sqlalchemy.orm import selectinload
 from app.dependencies import ContentManagerUser, CurrentUser, OptionalUser, SessionDep
 from app.serializers import serialize_course
 from app.utils import log_activity
-from model import Course, DiscussionReply, DiscussionThread, Membership, Quiz, QuizAttempt, ResourceView, Resource
+from model import (
+    Course,
+    DiscussionReply,
+    DiscussionThread,
+    Membership,
+    PracticalAttempt,
+    PracticalExercise,
+    Quiz,
+    QuizAttempt,
+    ResourceView,
+    Resource,
+)
 from schemas import CourseCreate, MembershipCreate
 
 router = APIRouter()
@@ -116,6 +127,24 @@ def course_progress(course_id: int, db: SessionDep, current_user: CurrentUser):
     )
     quiz_average = round(quiz_avg, 1) if quiz_avg else None
 
+    practical_attempt_count = db.scalar(
+        select(func.count(PracticalAttempt.id)).where(
+            PracticalAttempt.user_id == current_user.id,
+            PracticalAttempt.exercise.has(course_id=course_id),
+        )
+    ) or 0
+
+    practical_count = len(course.practical_exercises)
+
+    practical_avg = db.scalar(
+        select(func.avg(PracticalAttempt.score / PracticalAttempt.total_points * 100)).where(
+            PracticalAttempt.user_id == current_user.id,
+            PracticalAttempt.exercise.has(course_id=course_id),
+            PracticalAttempt.total_points > 0,
+        )
+    )
+    practical_average = round(practical_avg, 1) if practical_avg else None
+
     thread_count = db.scalar(
         select(func.count(DiscussionThread.id)).where(
             DiscussionThread.author_id == current_user.id,
@@ -139,6 +168,9 @@ def course_progress(course_id: int, db: SessionDep, current_user: CurrentUser):
         "quizzes_taken": quiz_attempt_count,
         "quiz_count": quiz_count,
         "quiz_average_percentage": quiz_average,
+        "practicals_completed": practical_attempt_count,
+        "practical_count": practical_count,
+        "practical_average_percentage": practical_average,
         "discussions_participated": discussion_participation,
         "joined_at": membership.joined_at if membership else None,
     }
@@ -181,6 +213,28 @@ def bulk_course_progress(db: SessionDep, current_user: CurrentUser):
         ).all()
     )
 
+    practical_attempts = dict(
+        db.execute(
+            select(PracticalExercise.course_id, func.count(PracticalAttempt.id))
+            .join(PracticalAttempt, PracticalAttempt.exercise_id == PracticalExercise.id)
+            .where(PracticalAttempt.user_id == current_user.id, PracticalExercise.course_id.in_(course_ids))
+            .group_by(PracticalExercise.course_id)
+        ).all()
+    )
+
+    practical_avgs = dict(
+        db.execute(
+            select(PracticalExercise.course_id, func.avg(PracticalAttempt.score / PracticalAttempt.total_points * 100))
+            .join(PracticalAttempt, PracticalAttempt.exercise_id == PracticalExercise.id)
+            .where(
+                PracticalAttempt.user_id == current_user.id,
+                PracticalExercise.course_id.in_(course_ids),
+                PracticalAttempt.total_points > 0,
+            )
+            .group_by(PracticalExercise.course_id)
+        ).all()
+    )
+
     threads = dict(
         db.execute(
             select(DiscussionThread.course_id, func.count(DiscussionThread.id))
@@ -206,8 +260,9 @@ def bulk_course_progress(db: SessionDep, current_user: CurrentUser):
             "resources_viewed": resource_views.get(cid, 0),
             "quizzes_taken": quiz_attempts.get(cid, 0),
             "quiz_average_percentage": round(quiz_avgs[cid], 1) if cid in quiz_avgs else None,
+            "practicals_completed": practical_attempts.get(cid, 0),
+            "practical_average_percentage": round(practical_avgs[cid], 1) if cid in practical_avgs else None,
             "discussions_participated": threads.get(cid, 0) + replies.get(cid, 0),
             "joined_at": m.joined_at,
         }
     return result
-
