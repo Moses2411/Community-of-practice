@@ -1155,6 +1155,7 @@ function renderPracticals() {
       ` : ""}
     </section>
   `;
+  startPracticalTimers();
 }
 
 function renderWaitingLobby(nextTime) {
@@ -1307,67 +1308,99 @@ function renderNextSessionCountdown(nextTime) {
 
 function renderPracticalCard(exercise) {
   const starter = exercise.starter_code || "";
+  const exId = exercise.id;
+  const testCasesId = `testcases-${exId}`;
+  const checks = exercise.check_count || 0;
   return `
-    <article class="card stack">
-      <div class="card-header">
-        <div>
+    <article class="lc-card">
+      <div class="lc-header">
+        <div class="lc-header-left">
           <div class="badge-row">
             <span class="badge">${escapeHtml(exercise.course_code || "")}</span>
             <span class="badge purple">${escapeHtml(practicalTypeLabel(exercise.practical_type))}</span>
             <span class="badge gold">${escapeHtml(exercise.difficulty)}</span>
-            <span class="badge">${exercise.check_count} checks</span>
-            <span class="badge blue">${exercise.best_percentage == null ? "No score yet" : exercise.best_percentage + "% best"}</span>
-            <span class="badge">${escapeHtml(practicalReleaseLabel(exercise))}</span>
           </div>
           <h2>${escapeHtml(exercise.title)}</h2>
-          <p>${escapeHtml(exercise.prompt)}</p>
-          ${exercise.expected_output ? `<p class="muted">Expected: ${escapeHtml(exercise.expected_output)}</p>` : ""}
+        </div>
+        <div class="lc-header-right">
+          <span class="lc-status ${exercise.best_percentage === 100 ? 'lc-passed' : exercise.best_percentage != null ? 'lc-failed' : ''}">
+            ${exercise.best_percentage === 100 ? 'Solved' : exercise.best_percentage != null ? 'Attempted' : 'Not attempted'}
+          </span>
         </div>
       </div>
-      <form class="form-stack" data-form="practical-submit" data-id="${exercise.id}">
-        <label>
-          Workspace
-          <textarea class="code-editor" name="submitted_code" rows="10" spellcheck="false">${escapeHtml(starter)}</textarea>
-        </label>
-        <button type="submit">Submit Practical</button>
-      </form>
+
+      <div class="lc-description">
+        <p>${escapeHtml(exercise.prompt)}</p>
+        ${exercise.expected_output ? `<div class="lc-example"><strong>Example:</strong><br>${escapeHtml(exercise.expected_output)}</div>` : ""}
+      </div>
+
+      <div class="lc-editor">
+        <div class="lc-editor-header">
+          <span class="lc-editor-title">Code</span>
+          <span class="lc-timer" data-timer="${exId}">10:00</span>
+        </div>
+        <textarea class="lc-textarea" name="submitted_code" data-exercise="${exId}" spellcheck="false">${escapeHtml(starter)}</textarea>
+      </div>
+
+      <div class="lc-tests" id="${testCasesId}">
+        <div class="lc-tests-header">
+          <span>Test Cases (${checks})</span>
+        </div>
+        <div class="lc-tests-list">
+          ${Array.from({ length: checks }, (_, i) => `
+            <div class="lc-test-item" data-index="${i}">
+              <span class="lc-test-status pending">○</span>
+              <span>Check ${i + 1}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="lc-actions">
+        <button class="lc-btn lc-btn-run" data-action="practical-run" data-id="${exId}">Run</button>
+        <button class="lc-btn lc-btn-submit" data-action="practical-submit-btn" data-id="${exId}">Submit</button>
+      </div>
     </article>
   `;
 }
 
 function renderPracticalResult(result) {
+  const passed = result.percentage === 100;
   content.innerHTML = `
     <section class="stack">
-      <article class="panel stack">
-        <div class="grid two">
-          ${metric("Score", `${result.score} / ${result.total_points}`)}
-          ${metric("Percentage", `${result.percentage}%`, result.percentage < 50 ? "danger" : "")}
+      <div class="toolbar">
+        <button class="secondary" data-action="back-practical-types" type="button">← Back</button>
+      </div>
+
+      <article class="lc-result ${passed ? 'lc-result-pass' : 'lc-result-fail'}">
+        <div class="lc-result-banner">
+          <h2>${passed ? 'Accepted' : 'Wrong Answer'}</h2>
+          <div class="lc-result-score">${result.percentage}%</div>
         </div>
-        <div class="badge-row">
+        <div class="lc-result-details">
           <span class="badge purple">${escapeHtml(practicalTypeLabel(result.practical_type))}</span>
           <span class="badge blue">${escapeHtml(result.exercise_title)}</span>
           <span class="badge">${escapeHtml(result.course_code || "")}</span>
         </div>
       </article>
+
       <article class="panel stack">
-        <h2>Feedback</h2>
+        <h2>Test Cases</h2>
         <div class="list">
-          ${(result.feedback || [])
-            .map(
-              (item) => `
-                <div class="card compact ${item.passed ? "correct" : "wrong"}">
-                  <strong>${escapeHtml(item.label)}</strong>
-                  <p class="muted">${escapeHtml(item.message)}</p>
-                </div>
-              `
-            )
-            .join("")}
+          ${(result.feedback || []).map((item) => `
+            <div class="lc-test-result ${item.passed ? 'lc-test-pass' : 'lc-test-fail'}">
+              <span class="lc-test-status">${item.passed ? '✓' : '✗'}</span>
+              <span><strong>${escapeHtml(item.label)}</strong></span>
+              <span class="muted">${escapeHtml(item.message)}</span>
+            </div>
+          `).join("")}
         </div>
-        ${result.solution_notes ? `<p class="muted">${escapeHtml(result.solution_notes)}</p>` : ""}
+        ${result.solution_notes ? `<details class="lc-solution"><summary>Solution Hint</summary><p class="muted">${escapeHtml(result.solution_notes)}</p></details>` : ""}
       </article>
+
       <div class="toolbar">
-        <button data-action="open-practicals" type="button">Back to Practicals</button>
-        <button class="secondary" data-action="practical-history" type="button">View History</button>
+        <button class="secondary" data-action="back-practical-types" type="button">← Back to Sections</button>
+        <button class="secondary" data-action="practical-history" type="button">History</button>
       </div>
     </section>
   `;
@@ -2181,6 +2214,37 @@ content.addEventListener("click", async (event) => {
       await updateNotificationBadge();
       document.querySelector("#notification-btn").click();
     }
+
+    if (action === "practical-run") {
+      const code = document.querySelector(`textarea[data-exercise="${id}"]`)?.value || "";
+      const result = await api(`/api/practicals/${id}/submit?dry_run=true`, {
+        method: "POST",
+        body: JSON.stringify({ submitted_code: code }),
+      });
+      const testCasesEl = document.getElementById(`testcases-${id}`);
+      if (testCasesEl) {
+        const items = testCasesEl.querySelectorAll(".lc-test-item");
+        (result.feedback || []).forEach((check, i) => {
+          if (items[i]) {
+            items[i].className = `lc-test-item ${check.passed ? "pass" : "fail"}`;
+            items[i].querySelector(".lc-test-status").textContent = check.passed ? "\u2713" : "\u2717";
+          }
+        });
+      }
+      showMessage(result.percentage === 100 ? "All checks passed!" : "Some checks failed.", result.percentage === 100 ? "success" : "error");
+    }
+
+    if (action === "practical-submit-btn") {
+      const code = document.querySelector(`textarea[data-exercise="${id}"]`)?.value || "";
+      const result = await api(`/api/practicals/${id}/submit`, {
+        method: "POST",
+        body: JSON.stringify({ submitted_code: code }),
+      });
+      refreshPracticals();
+      refreshPerformance();
+      renderPracticalResult(result);
+      showMessage(result.percentage === 100 ? "Accepted!" : "Wrong answer.", result.percentage === 100 ? "success" : "error");
+    }
   } catch (error) {
     showMessage(error.message, "error");
   }
@@ -2385,6 +2449,43 @@ async function boot() {
     clearSession();
     document.querySelector("#boot-loader").classList.add("hidden");
   }
+}
+
+function startPracticalTimers() {
+  if (window.__practicalTimerIntervals) {
+    window.__practicalTimerIntervals.forEach(clearInterval);
+  }
+  window.__practicalTimerIntervals = [];
+
+  document.querySelectorAll("[data-timer]").forEach((el) => {
+    const totalSeconds = 600;
+    let remaining = totalSeconds;
+
+    const update = () => {
+      const m = String(Math.floor(remaining / 60)).padStart(2, "0");
+      const s = String(remaining % 60).padStart(2, "0");
+      el.textContent = `${m}:${s}`;
+    };
+    update();
+
+    const interval = setInterval(() => {
+      remaining--;
+      update();
+      if (remaining <= 0) {
+        clearInterval(interval);
+        const exId = el.dataset.timer;
+        el.textContent = "Time's up!";
+        el.classList.add("lc-timer-expired");
+        const card = el.closest(".lc-card");
+        if (card) {
+          card.querySelectorAll("[data-action='practical-run'], [data-action='practical-submit-btn']")
+            .forEach((btn) => btn.disabled = true);
+        }
+      }
+    }, 1000);
+
+    window.__practicalTimerIntervals.push(interval);
+  });
 }
 
 boot();

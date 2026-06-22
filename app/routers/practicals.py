@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
@@ -24,7 +24,7 @@ def evaluate_submission(exercise: PracticalExercise, submitted_code: str) -> tup
         return 100.0, [{"label": "Submitted", "passed": True, "message": "Submission received for review."}]
 
     feedback = []
-    passed = 0
+    all_passed = True
     for check in checks:
         text = submitted_code if check.get("case_sensitive") else submitted_code.lower()
         contains_all = check.get("contains_all") or []
@@ -32,20 +32,21 @@ def evaluate_submission(exercise: PracticalExercise, submitted_code: str) -> tup
         normalized_all = [item if check.get("case_sensitive") else str(item).lower() for item in contains_all]
         normalized_any = [item if check.get("case_sensitive") else str(item).lower() for item in contains_any]
 
-        all_passed = all(item in text for item in normalized_all)
-        any_passed = True if not normalized_any else any(item in text for item in normalized_any)
-        check_passed = all_passed and any_passed
-        if check_passed:
-            passed += 1
+        ca_passed = all(item in text for item in normalized_all)
+        cy_passed = True if not normalized_any else any(item in text for item in normalized_any)
+        check_passed = ca_passed and cy_passed
+        if not check_passed:
+            all_passed = False
         feedback.append(
             {
                 "label": check.get("label", "Check"),
                 "passed": check_passed,
-                "message": "Met" if check_passed else "Needs improvement",
+                "message": "Passed" if check_passed else "Failed",
             }
         )
 
-    return round((passed / len(checks)) * 100, 2), feedback
+    score = 100.0 if all_passed else 0.0
+    return score, feedback
 
 
 @router.get("/api/practicals")
@@ -114,7 +115,7 @@ def list_practical_attempts(db: SessionDep, current_user: CurrentUser):
 
 
 @router.post("/api/practicals/{exercise_id}/submit")
-def submit_practical(exercise_id: int, payload: PracticalSubmit, db: SessionDep, current_user: CurrentUser):
+def submit_practical(exercise_id: int, payload: PracticalSubmit, db: SessionDep, current_user: CurrentUser, dry_run: bool = Query(default=False)):
     require_experimental_group(current_user)
     exercise = db.get(PracticalExercise, exercise_id)
     if exercise is None:
@@ -122,6 +123,19 @@ def submit_practical(exercise_id: int, payload: PracticalSubmit, db: SessionDep,
     require_course_membership(db, current_user, exercise.course_id)
 
     score, feedback = evaluate_submission(exercise, payload.submitted_code)
+
+    if dry_run:
+        return {
+            "score": score,
+            "total_points": 100,
+            "percentage": score,
+            "feedback": feedback,
+            "practical_type": exercise.practical_type,
+            "exercise_title": exercise.title,
+            "course_code": exercise.course.code if exercise.course else None,
+            "solution_notes": None,
+        }
+
     attempt = PracticalAttempt(
         exercise_id=exercise.id,
         user_id=current_user.id,

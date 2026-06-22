@@ -254,6 +254,25 @@ def seed_database(db: Session) -> None:
         db.add(researcher)
         db.flush()
 
+    admin_email = normalized_email("copadmin@gmail.com")
+    admin_password = "copadminadmin"
+    admin = db.scalar(select(User).where(User.email == admin_email))
+    if admin is None:
+        admin = User(
+            research_id="ABU-CS-ADMIN",
+            full_name="COP Admin",
+            email=admin_email,
+            password_hash=hash_password(admin_password),
+            role="admin",
+            study_group="experimental",
+            programme="Computer Science Education",
+            department="Science Education",
+            level="Research",
+            interests="Platform administration",
+        )
+        db.add(admin)
+        db.flush()
+
     if db.scalar(select(func.count(Course.id))) == 0:
         courses = [
             Course(
