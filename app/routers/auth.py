@@ -1,14 +1,26 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+import random
+import string
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.dependencies import CurrentUser, SessionDep
+from app.dependencies import CurrentUser, ResearcherUser, SessionDep
 from app.serializers import serialize_user
 from app.utils import create_access_token, generate_research_id, hash_password, log_activity, normalized_email, verify_password
-from model import ConsentRecord, User
-from schemas import ConsentCreate, UserCreate, UserLogin
+from model import ConsentRecord, PasswordResetToken, User
+from schemas import (
+    AdminPasswordReset,
+    ChangePassword,
+    ConsentCreate,
+    GenerateResetToken,
+    SecurityAnswerCheck,
+    SecurityPasswordReset,
+    TokenPasswordReset,
+    UserCreate,
+    UserLogin,
+)
 
 router = APIRouter()
 
@@ -29,6 +41,8 @@ def register(payload: UserCreate, db: SessionDep):
         department=payload.department,
         level=payload.level,
         interests=payload.interests,
+        security_question=payload.security_question,
+        security_answer_hash=hash_password(payload.security_answer) if payload.security_answer else None,
     )
     db.add(user)
     try:
@@ -75,3 +89,83 @@ def record_consent(payload: ConsentCreate, db: SessionDep, current_user: Current
     db.commit()
     db.refresh(consent)
     return {"id": consent.id, "agreed": consent.agreed, "consent_version": consent.consent_version}
+
+
+@router.post("/api/auth/change-password")
+def change_password(payload: ChangePassword, db: SessionDep, current_user: CurrentUser):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    current_user.password_hash = hash_password(payload.new_password)
+    log_activity(db, current_user, "password_changed", "user", current_user.id)
+    db.commit()
+    return {"message": "Password updated."}
+
+
+@router.get("/api/auth/security-question")
+def get_security_question(email: str, db: SessionDep):
+    user = db.scalar(select(User).where(User.email == normalized_email(email)))
+    if user is None or not user.security_question:
+        raise HTTPException(status_code=404, detail="No security question found for this email.")
+    return {"question": user.security_question}
+
+
+@router.post("/api/auth/reset-with-security")
+def reset_with_security(payload: SecurityPasswordReset, db: SessionDep):
+    user = db.scalar(select(User).where(User.email == normalized_email(payload.email)))
+    if user is None or not user.security_answer_hash:
+        raise HTTPException(status_code=400, detail="Password reset not available for this account.")
+    if not verify_password(payload.answer, user.security_answer_hash):
+        raise HTTPException(status_code=400, detail="Incorrect answer.")
+    user.password_hash = hash_password(payload.new_password)
+    log_activity(db, user, "password_reset_security", "user", user.id)
+    db.commit()
+    return {"message": "Password reset successfully."}
+
+
+@router.post("/api/admin/users/{user_id}/generate-reset-token")
+def generate_reset_token(user_id: int, db: SessionDep, current_user: ResearcherUser):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    code = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    token = PasswordResetToken(
+        user_id=user.id,
+        code=code,
+        expires_at=datetime.utcnow() + timedelta(hours=24),
+    )
+    db.add(token)
+    log_activity(db, current_user, "reset_token_generated", "user", user.id)
+    db.commit()
+    return {"code": code, "expires_in_hours": 24}
+
+
+@router.post("/api/auth/reset-with-token")
+def reset_with_token(payload: TokenPasswordReset, db: SessionDep):
+    token = db.scalar(
+        select(PasswordResetToken).where(
+            PasswordResetToken.code == payload.code,
+            PasswordResetToken.used == False,
+            PasswordResetToken.expires_at > datetime.utcnow(),
+        )
+    )
+    if token is None:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+    user = db.get(User, token.user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    user.password_hash = hash_password(payload.new_password)
+    token.used = True
+    log_activity(db, user, "password_reset_token", "user", user.id)
+    db.commit()
+    return {"message": "Password reset successfully."}
+
+
+@router.post("/api/admin/users/{user_id}/reset-password")
+def admin_reset_password(user_id: int, payload: AdminPasswordReset, db: SessionDep, current_user: ResearcherUser):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    user.password_hash = hash_password(payload.new_password)
+    log_activity(db, current_user, "password_reset_admin", "user", user_id, {"reset_by": current_user.research_id})
+    db.commit()
+    return {"message": f"Password reset for {user.research_id}."}

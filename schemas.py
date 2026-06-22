@@ -13,6 +13,8 @@ class UserCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
+    security_question: str | None = None
+    security_answer: str | None = None
     programme: str = "Computer Science Education"
     department: str = "Computer Science"
     level: str | None = None
@@ -49,9 +51,38 @@ class UserOut(BaseModel):
 
 
 class ConsentCreate(BaseModel):
-    agreed: bool = True
     consent_version: str = "v1"
+    agreed: bool = True
     notes: str | None = None
+
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class AdminPasswordReset(BaseModel):
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class SecurityAnswerCheck(BaseModel):
+    email: EmailStr
+    answer: str
+
+
+class SecurityPasswordReset(BaseModel):
+    email: EmailStr
+    answer: str
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class TokenPasswordReset(BaseModel):
+    code: str
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class GenerateResetToken(BaseModel):
+    user_id: int
 
 
 class CourseCreate(BaseModel):

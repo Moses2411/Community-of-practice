@@ -1844,6 +1844,20 @@ async function renderResearch() {
             .map((dataset) => `<button class="secondary" data-action="export" data-id="${dataset}" type="button">${dataset.replaceAll("_", " ")}</button>`)
             .join("")}
         </div>
+        <hr class="light" />
+        <h3>Password Reset</h3>
+        <p class="muted">Generate a one-time 8-character reset code for a user.</p>
+        <div class="row" style="gap:8px;display:flex">
+          <select id="reset-user-select" style="flex:1">
+            <option value="">Select a user...</option>
+            ${users
+              .filter((user) => user.role === "student")
+              .map((user) => `<option value="${user.id}">${escapeHtml(user.research_id)} - ${escapeHtml(user.full_name)}</option>`)
+              .join("")}
+          </select>
+          <button class="secondary" data-action="generate-reset-token" type="button">Generate Code</button>
+        </div>
+        <div id="reset-code-display" class="hidden" style="margin-top:8px;padding:12px;background:var(--surface-strong);border-radius:8px;text-align:center;font-family:monospace;font-size:1.2rem;letter-spacing:2px"></div>
       </article>
 
       <form class="panel form-stack" data-form="academic-record">
@@ -1934,6 +1948,43 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
     } else {
       showFormAlert("login", error.message || "Invalid email or password.");
     }
+  }
+});
+
+document.querySelector("#forgot-password-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const alertEl = document.querySelector("#forgot-password-alert");
+  const questionEl = document.querySelector("#security-question-display");
+  const answerLabel = document.querySelector("#security-answer-label");
+  const newPassLabel = document.querySelector("#new-password-label");
+  alertEl.classList.add("hidden");
+
+  const email = form.email.value;
+  const step = form.dataset.step || "question";
+
+  try {
+    if (step === "question") {
+      const res = await api(`/api/auth/security-question?email=${encodeURIComponent(email)}`);
+      questionEl.textContent = `Security question: ${res.question}`;
+      questionEl.classList.remove("hidden");
+      answerLabel.classList.remove("hidden");
+      newPassLabel.classList.remove("hidden");
+      form.dataset.step = "reset";
+      form.querySelector("button[type=submit]").textContent = "Reset Password";
+    } else {
+      const payload = { email, answer: form.answer.value, new_password: form.new_password.value };
+      await api("/api/auth/reset-with-security", { method: "POST", body: JSON.stringify(payload) });
+      alertEl.classList.remove("hidden", "error");
+      alertEl.classList.add("success");
+      alertEl.textContent = "Password reset successfully. Sign in with your new password.";
+      form.dataset.step = "done";
+      form.querySelector("button[type=submit]").disabled = true;
+    }
+  } catch (error) {
+    alertEl.classList.remove("hidden", "success");
+    alertEl.classList.add("error");
+    alertEl.textContent = error.message;
   }
 });
 
@@ -2065,6 +2116,27 @@ authScreen.addEventListener("click", (event) => {
   if (action === "show-login") { showLoginForm(); return; }
   if (action === "show-register") { showRegisterForm(); return; }
   if (action === "back-to-landing") { showLanding(); return; }
+
+  if (action === "show-forgot-password") {
+    document.querySelector("#login-form").classList.add("hidden");
+    document.querySelector("#forgot-password-view").classList.remove("hidden");
+    return;
+  }
+
+  if (action === "back-to-login") {
+    document.querySelector("#forgot-password-view").classList.add("hidden");
+    document.querySelector("#login-form").classList.remove("hidden");
+    const f = document.querySelector("#forgot-password-form");
+    f.dataset.step = "question";
+    f.querySelector("button[type=submit]").textContent = "Reset Password";
+    f.querySelector("button[type=submit]").disabled = false;
+    f.reset();
+    document.querySelector("#security-question-display").classList.add("hidden");
+    document.querySelector("#security-answer-label").classList.add("hidden");
+    document.querySelector("#new-password-label").classList.add("hidden");
+    document.querySelector("#forgot-password-alert").classList.add("hidden");
+    return;
+  }
 });
 
 content.addEventListener("click", async (event) => {
@@ -2187,6 +2259,16 @@ content.addEventListener("click", async (event) => {
 
     if (action === "export") {
       await downloadDataset(id);
+    }
+
+    if (action === "generate-reset-token") {
+      const userId = document.querySelector("#reset-user-select").value;
+      if (!userId) { showMessage("Select a user first.", "error"); return; }
+      const result = await api(`/api/admin/users/${userId}/generate-reset-token`, { method: "POST" });
+      const display = document.querySelector("#reset-code-display");
+      display.textContent = `Reset code: ${result.code} (expires in ${result.expires_in_hours}h)`;
+      display.classList.remove("hidden");
+      showMessage("Reset code generated. Share it with the user.");
     }
 
     if (action === "open-survey") {

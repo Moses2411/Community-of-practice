@@ -104,8 +104,33 @@
                 <input name="password" type="password" required autocomplete="current-password" />
                 <span class="field-error" data-field="password"></span>
               </label>
+              <div class="forgot-links">
+                <button class="link-btn" data-action="show-forgot-password" type="button">Forgot password?</button>
+              </div>
               <button class="btn-primary" type="submit">Sign In</button>
             </form>
+            <div id="forgot-password-view" class="hidden">
+              <form id="forgot-password-form" class="form-stack">
+                <p class="muted">Enter your email to look up your security question.</p>
+                <label>
+                  Email
+                  <input name="email" type="email" required />
+                  <span class="field-error" data-field="email"></span>
+                </label>
+                <div id="security-question-display" class="muted hidden" style="margin-bottom:8px"></div>
+                <label id="security-answer-label" class="hidden">
+                  Answer
+                  <input name="answer" />
+                </label>
+                <label id="new-password-label" class="hidden">
+                  New Password
+                  <input name="new_password" type="password" minlength="6" />
+                </label>
+                <div id="forgot-password-alert" class="form-alert hidden"></div>
+                <button type="submit">Reset Password</button>
+                <button class="link-btn" data-action="back-to-login" type="button" style="margin-top:8px">← Back to Sign In</button>
+              </form>
+            </div>
           </div>
         </div>
       </section>
@@ -143,6 +168,25 @@
                   Level
                   <input name="level" placeholder="e.g. 400 Level" />
                   <span class="field-error" data-field="level"></span>
+                </label>
+              </div>
+              <div class="two-col">
+                <label>
+                  Security Question
+                  <select name="security_question">
+                    <option value="">Select a question</option>
+                    <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                    <option value="What is the name of your first pet?">What is the name of your first pet?</option>
+                    <option value="What was the name of your primary school?">What was the name of your primary school?</option>
+                    <option value="What is your favorite book?">What is your favorite book?</option>
+                    <option value="What city were you born in?">What city were you born in?</option>
+                  </select>
+                  <span class="field-error" data-field="security_question"></span>
+                </label>
+                <label>
+                  Security Answer
+                  <input name="security_answer" placeholder="Answer to your security question" />
+                  <span class="field-error" data-field="security_answer"></span>
                 </label>
               </div>
               <label>

@@ -38,6 +38,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=utcnow)
     last_login_at = Column(DateTime, nullable=True)
+    security_question = Column(String(255), nullable=True)
+    security_answer_hash = Column(String(255), nullable=True)
 
     consent_records = relationship("ConsentRecord", back_populates="user", cascade="all, delete-orphan")
     memberships = relationship("Membership", back_populates="user", cascade="all, delete-orphan")
@@ -64,6 +66,19 @@ class ConsentRecord(Base):
     agreed_at = Column(DateTime, default=utcnow)
 
     user = relationship("User", back_populates="consent_records")
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    code = Column(String(8), nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utcnow)
+
+    user = relationship("User")
 
 
 class Course(Base):
