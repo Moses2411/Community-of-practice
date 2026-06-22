@@ -15,6 +15,10 @@ from model import (
     Reflection,
     ResourceFeedback,
     ResourceView,
+    Survey,
+    SurveyAnswer,
+    SurveyQuestion,
+    SurveyResponse,
     User,
 )
 from model import Resource as ResourceModel
@@ -238,6 +242,42 @@ def export_combined(db) -> tuple[list[str], list[list]]:
     )
 
 
+def export_survey_responses(db) -> tuple[list[str], list[list]]:
+    from sqlalchemy.orm import selectinload
+    responses = db.scalars(
+        select(SurveyResponse)
+        .options(
+            selectinload(SurveyResponse.user),
+            selectinload(SurveyResponse.survey),
+            selectinload(SurveyResponse.answers).selectinload(SurveyAnswer.question),
+        )
+        .order_by(SurveyResponse.completed_at)
+    ).all()
+    rows = []
+    for resp in responses:
+        survey = resp.survey
+        user = resp.user
+        for answer in (resp.answers or []):
+            q = answer.question
+            rows.append([
+                resp.id,
+                user.research_id if user else None,
+                user.study_group if user else None,
+                survey.survey_type if survey else None,
+                survey.title if survey else None,
+                q.id if q else None,
+                q.prompt if q else None,
+                q.dimension if q else None,
+                answer.rating,
+                resp.completed_at,
+            ])
+    return (
+        ["response_id", "research_id", "study_group", "survey_type", "survey_title",
+         "question_id", "question_prompt", "dimension", "rating", "completed_at"],
+        rows,
+    )
+
+
 EXPORTERS = {
     "users": export_users,
     "activity": export_activity,
@@ -246,6 +286,7 @@ EXPORTERS = {
     "reflections": export_reflections,
     "discussions": export_discussions,
     "academic_records": export_academic_records,
+    "survey_responses": export_survey_responses,
     "combined": export_combined,
 }
 
