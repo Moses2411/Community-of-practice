@@ -1840,7 +1840,7 @@ async function renderResearch() {
       <article class="panel stack">
         <h2>CSV Exports</h2>
         <div class="export-grid">
-          ${["users", "activity", "quiz_attempts", "feedback", "reflections", "discussions", "academic_records", "combined"]
+          ${["users", "activity", "quiz_attempts", "feedback", "reflections", "discussions", "academic_records", "survey_responses", "combined"]
             .map((dataset) => `<button class="secondary" data-action="export" data-id="${dataset}" type="button">${dataset.replaceAll("_", " ")}</button>`)
             .join("")}
         </div>
