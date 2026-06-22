@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from fastapi import APIRouter, HTTPException, Query, Depends
@@ -115,14 +116,15 @@ def list_practical_attempts(db: SessionDep, current_user: CurrentUser):
 
 
 @router.post("/api/practicals/{exercise_id}/submit")
-def submit_practical(exercise_id: int, payload: PracticalSubmit, db: SessionDep, current_user: CurrentUser, dry_run: bool = Query(default=False)):
+async def submit_practical(exercise_id: int, payload: PracticalSubmit, db: SessionDep, current_user: CurrentUser, dry_run: bool = Query(default=False)):
     require_experimental_group(current_user)
     exercise = db.get(PracticalExercise, exercise_id)
     if exercise is None:
         raise HTTPException(status_code=404, detail="Practical exercise not found.")
     require_course_membership(db, current_user, exercise.course_id)
 
-    score, feedback = evaluate_submission(exercise, payload.submitted_code)
+    loop = asyncio.get_event_loop()
+    score, feedback = await loop.run_in_executor(None, evaluate_submission, exercise, payload.submitted_code)
 
     if dry_run:
         return {

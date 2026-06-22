@@ -1,5 +1,7 @@
 fastapi
 uvicorn[standard]
+gunicorn
+redis
 sqlalchemy
 alembic
 python-jose[cryptography]
