@@ -235,7 +235,7 @@ def seed_database(db: Session) -> None:
     researcher_email = normalized_email(
         "researcher@abuzaria.edu.ng"
     )
-    researcher_password = "Research@12345"
+    researcher_password = "cop@12345678"
 
     researcher = db.scalar(select(User).where(User.email == researcher_email))
     if researcher is None:
