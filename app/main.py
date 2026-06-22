@@ -1,5 +1,5 @@
-from contextlib import asynccontextmanager
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -28,8 +28,8 @@ from app.routers import (
     surveys,
 )
 from app.practical_schedule import ensure_practical_release_schema
-from app.seed import reset_stale_sqlite_schema, seed_database
-from db.database import Base, SessionLocal, engine
+from app.seed import seed_database
+from db.database import SessionLocal, engine
 
 
 def run_migrations():
@@ -40,11 +40,18 @@ def run_migrations():
     command.upgrade(alembic_cfg, "head")
 
 
+MIGRATION_LOCK = Path("/tmp/.migration_done")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    reset_stale_sqlite_schema()
-    Base.metadata.create_all(bind=engine)
-    run_migrations()
+    if os.environ.get("SKIP_MIGRATIONS") != "1":
+        if not MIGRATION_LOCK.exists():
+            run_migrations()
+            try:
+                MIGRATION_LOCK.touch()
+            except OSError:
+                pass
     ensure_practical_release_schema()
     with SessionLocal() as db:
         seed_database(db)
