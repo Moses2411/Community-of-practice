@@ -188,17 +188,16 @@ def build_daily_practical_specs(course: Course, release: PracticalRelease) -> li
     java_seed = _stable_int(course.code, release.key, "java")
     db_seed = _stable_int(course.code, release.key, "database")
 
-    python_builders = _select_builders(PYTHON_BUILDERS, py_seed, 5)
-    java_builders = _select_builders(JAVA_BUILDERS, java_seed, 5)
-    db_builders = _select_builders(DB_BUILDERS, db_seed, 10)
+    python_builders = _select_builders(PYTHON_BUILDERS, py_seed, 1)
+    java_builders = _select_builders(JAVA_BUILDERS, java_seed, 1)
+    db_builders = _select_builders(DB_BUILDERS, db_seed, 2)
 
-    specs = []
-    for i, builder in enumerate(python_builders):
-        specs.append(builder(course, py_seed + i * 7 + 1))
-    for i, builder in enumerate(java_builders):
-        specs.append(builder(course, java_seed + i * 7 + 3))
-    for i, builder in enumerate(db_builders):
-        specs.append(builder(course, db_seed + i * 11 + 5))
+    specs = [
+        python_builders[0](course, py_seed),
+        java_builders[0](course, java_seed),
+        db_builders[0](course, db_seed),
+        db_builders[1](course, db_seed + 37),
+    ]
 
     return specs
 

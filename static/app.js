@@ -243,7 +243,6 @@ function applySidebarState() {
   if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", String(!state.sidebarCollapsed));
 }
 
-
 async function loadCoreData() {
   const fetchers = [api("/api/courses"), api("/api/resources")];
   if (!isControlGroup()) {
@@ -1181,11 +1180,11 @@ function renderNextSessionCountdown(nextTime) {
       <div class="next-session-grid">
         <div class="next-session-col">
           <span class="badge purple">Coding</span>
-          <span class="next-session-count">10 exercises</span>
+          <span class="next-session-count">1 exercise</span>
         </div>
         <div class="next-session-col">
           <span class="badge">Database</span>
-          <span class="next-session-count">10 exercises</span>
+          <span class="next-session-count">2 exercises</span>
         </div>
       </div>
     </section>
