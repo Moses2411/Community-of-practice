@@ -1057,48 +1057,162 @@ function renderDiscussions() {
 
 function renderPracticals() {
   setTitle("Practicals", "Daily coding and database releases");
-  const filtered = state.practicals.filter((exercise) => {
-    if (state.selectedCourse && String(exercise.course_id) !== String(state.selectedCourse)) return false;
-    if (!isPracticalTypeMatch(exercise, state.selectedPracticalType)) return false;
-    return true;
-  });
-  const sampleExercise = state.practicals[0] || null;
-  const codingCount = filtered.filter((exercise) => ["python", "java"].includes(exercise.practical_type)).length;
-  const databaseCount = filtered.filter((exercise) => exercise.practical_type === "database").length;
-
   const releaseInfo = computeReleaseInfo();
   const nextTime = releaseInfo.nextTime;
 
+  const hasExercises = state.practicals.length > 0;
+  const pythonEx = state.practicals.filter((e) => e.practical_type === "python");
+  const javaEx = state.practicals.filter((e) => e.practical_type === "java");
+  const dbEx = state.practicals.filter((e) => e.practical_type === "database");
+
+  const sampleExercise = state.practicals[0] || null;
+
+  if (!hasExercises) {
+    content.innerHTML = `
+      <section class="toolbar">
+        <button class="secondary" data-action="practical-history" type="button">Submission History</button>
+      </section>
+      ${renderWaitingLobby(nextTime)}
+    `;
+    return;
+  }
+
+  const expandedType = state.selectedPracticalType || "";
+  const isExpanded = expandedType && expandedType !== "coding";
+  const expandedExercises = isExpanded ? state.practicals.filter((e) => e.practical_type === expandedType) : [];
+
   content.innerHTML = `
     <section class="toolbar">
-      <select id="course-filter">
-        <option value="">All joined courses</option>
-        ${canManageContent() ? courseOptions(state.selectedCourse) : joinedCourseOptions(state.selectedCourse)}
-      </select>
-      <select id="practical-type-filter">
-        <option value="">All practicals</option>
-        <option value="coding" ${state.selectedPracticalType === "coding" ? "selected" : ""}>Coding</option>
-        <option value="python" ${state.selectedPracticalType === "python" ? "selected" : ""}>Python</option>
-        <option value="java" ${state.selectedPracticalType === "java" ? "selected" : ""}>Java</option>
-        <option value="database" ${state.selectedPracticalType === "database" ? "selected" : ""}>Database</option>
-      </select>
+      <span class="badge gold">${escapeHtml(practicalReleaseLabel(sampleExercise))}</span>
       <button class="secondary" data-action="practical-history" type="button">Submission History</button>
-    </section>
-
-    <section class="grid three">
-      ${metric("Active Release", practicalReleaseLabel(sampleExercise), "compact-value")}
-      ${metric("Current Exercises", `${codingCount} coding / ${databaseCount} database`, "compact-value")}
-      ${metric("Next Release", nextPracticalReleaseLabel(sampleExercise), "compact-value")}
     </section>
 
     ${renderNextSessionCountdown(nextTime)}
 
-    <section class="list">
-      ${
-        filtered.length
-          ? filtered.map((exercise) => renderPracticalCard(exercise)).join("")
-          : `<div class="empty">No practical exercises available for this filter. Check back at the next session time.</div>`
-      }
+    <section class="practical-grid">
+      <article class="practical-section ${expandedType === 'python' ? 'active' : ''}" data-action="select-practical-type" data-type="python">
+        <div class="practical-section-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M12 8v8M8 12h8"/>
+          </svg>
+        </div>
+        <div class="practical-section-body">
+          <h2>Python</h2>
+          <span class="muted">${pythonEx.length} exercise${pythonEx.length !== 1 ? 's' : ''}</span>
+          ${pythonEx[0] ? `<span class="badge gold">${escapeHtml(pythonEx[0].difficulty)}</span>` : ''}
+        </div>
+        <div class="practical-section-action">
+          <span class="badge blue">${pythonEx[0] && pythonEx[0].best_percentage != null ? pythonEx[0].best_percentage + '%' : 'Start'}</span>
+        </div>
+      </article>
+
+      <article class="practical-section ${expandedType === 'java' ? 'active' : ''}" data-action="select-practical-type" data-type="java">
+        <div class="practical-section-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="practical-section-body">
+          <h2>Java</h2>
+          <span class="muted">${javaEx.length} exercise${javaEx.length !== 1 ? 's' : ''}</span>
+          ${javaEx[0] ? `<span class="badge gold">${escapeHtml(javaEx[0].difficulty)}</span>` : ''}
+        </div>
+        <div class="practical-section-action">
+          <span class="badge blue">${javaEx[0] && javaEx[0].best_percentage != null ? javaEx[0].best_percentage + '%' : 'Start'}</span>
+        </div>
+      </article>
+
+      <article class="practical-section ${expandedType === 'database' ? 'active' : ''}" data-action="select-practical-type" data-type="database">
+        <div class="practical-section-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <ellipse cx="12" cy="6" rx="7" ry="3"/>
+            <path d="M5 6v4c0 1.66 3.13 3 7 3s7-1.34 7-3V6"/>
+            <path d="M5 10v4c0 1.66 3.13 3 7 3s7-1.34 7-3v-4"/>
+          </svg>
+        </div>
+        <div class="practical-section-body">
+          <h2>Database</h2>
+          <span class="muted">${dbEx.length} exercise${dbEx.length !== 1 ? 's' : ''}</span>
+          ${dbEx[0] ? `<span class="badge gold">${escapeHtml(dbEx[0].difficulty)}</span>` : ''}
+        </div>
+        <div class="practical-section-action">
+          <span class="badge blue">${dbEx[0] && dbEx[0].best_percentage != null ? dbEx[0].best_percentage + '%' : 'Start'}</span>
+        </div>
+      </article>
+
+      ${isExpanded ? `
+        <div class="practical-expanded">
+          <div class="toolbar">
+            <button class="secondary" data-action="back-practical-types" type="button">← All Sections</button>
+            <span class="badge purple">${escapeHtml(practicalTypeLabel(expandedType))}</span>
+          </div>
+          <div class="list">
+            ${expandedExercises.map((ex) => renderPracticalCard(ex)).join("")}
+          </div>
+        </div>
+      ` : ""}
+    </section>
+  `;
+}
+
+function renderWaitingLobby(nextTime) {
+  if (!nextTime || !nextTime.date) {
+    return `<section class="panel waiting-lobby">
+      <div class="waiting-lobby-content">
+        <h2>No Active Session</h2>
+        <p class="muted">Practical sessions run daily at 8:00 AM, 12:00 PM, and 7:00 PM WAT.</p>
+      </div>
+    </section>`;
+  }
+  const now = new Date();
+  const localNow = new Date(now.toLocaleString("en-US", { timeZone: "Africa/Lagos" }));
+  const diffMs = Math.max(0, nextTime.date.getTime() - localNow.getTime());
+  const diffH = Math.floor(diffMs / 3600000);
+  const diffM = Math.floor((diffMs % 3600000) / 60000);
+  const diffS = Math.floor((diffMs % 60000) / 1000);
+
+  const timerId = "lobby-timer";
+  window.clearInterval(window[timerId + "_interval"]);
+  window[timerId + "_interval"] = setInterval(() => {
+    const el = document.getElementById(timerId);
+    if (!el) { clearInterval(window[timerId + "_interval"]); return; }
+    const n = new Date();
+    const ln = new Date(n.toLocaleString("en-US", { timeZone: "Africa/Lagos" }));
+    const d = Math.max(0, nextTime.date.getTime() - ln.getTime());
+    const h = Math.floor(d / 3600000);
+    const m = Math.floor((d % 3600000) / 60000);
+    const s = Math.floor((d % 60000) / 1000);
+    el.textContent = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    if (d <= 0) {
+      clearInterval(window[timerId + "_interval"]);
+      refreshPracticals();
+      renderPracticals();
+    }
+  }, 1000);
+
+  return `
+    <section class="panel waiting-lobby">
+      <div class="waiting-lobby-bg"></div>
+      <div class="waiting-lobby-content">
+        <div class="waiting-lobby-icon">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <h2>Next Practical Session</h2>
+        <div class="waiting-lobby-timer" id="${timerId}">
+          ${String(diffH).padStart(2, "0")}:${String(diffM).padStart(2, "0")}:${String(diffS).padStart(2, "0")}
+        </div>
+        <p class="muted">at ${nextTime.label} WAT</p>
+        <div class="waiting-lobby-schedule">
+          <span class="badge">8:00 AM</span>
+          <span class="badge">12:00 PM</span>
+          <span class="badge gold">7:00 PM</span>
+        </div>
+      </div>
     </section>
   `;
 }
@@ -2002,6 +2116,17 @@ content.addEventListener("click", async (event) => {
       state.quizResult = result;
       state.quizPhase = "result";
       renderQuizzes();
+    }
+
+    if (action === "select-practical-type") {
+      state.selectedPracticalType = button.dataset.type || "";
+      state.selectedCourse = "";
+      renderPracticals();
+    }
+
+    if (action === "back-practical-types") {
+      state.selectedPracticalType = "";
+      renderPracticals();
     }
 
     if (action === "back-to-quizzes") {
