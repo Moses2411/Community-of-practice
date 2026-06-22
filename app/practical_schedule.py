@@ -192,13 +192,14 @@ def build_daily_practical_specs(course: Course, release: PracticalRelease) -> li
 
     python_builders = _select_builders(PYTHON_BUILDERS, py_seed, 1)
     java_builders = _select_builders(JAVA_BUILDERS, java_seed, 1)
-    db_builders = _select_builders(DB_BUILDERS, db_seed, 2)
+    db_builders = _select_builders(DB_BUILDERS, db_seed, 3)
 
     specs = [
         python_builders[0](course, py_seed),
         java_builders[0](course, java_seed),
         db_builders[0](course, db_seed),
         db_builders[1](course, db_seed + 37),
+        db_builders[2](course, db_seed + 73),
     ]
 
     return specs
