@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import os
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,30 +32,19 @@ from app.seed import reset_stale_sqlite_schema, seed_database
 from db.database import Base, SessionLocal, engine
 
 
-def migrate_schema():
-    from sqlalchemy import inspect as sa_inspect
+def run_migrations():
+    from alembic.config import Config
+    from alembic import command
 
-    with engine.begin() as connection:
-        inspector = sa_inspect(connection)
-        columns = {col["name"] for col in inspector.get_columns("users")}
-        if "security_question" not in columns:
-            connection.exec_driver_sql(
-                "ALTER TABLE users ADD COLUMN security_question VARCHAR(255)"
-            )
-        if "security_answer_hash" not in columns:
-            connection.exec_driver_sql(
-                "ALTER TABLE users ADD COLUMN security_answer_hash VARCHAR(255)"
-            )
-        table_names = inspector.get_table_names()
-        if "password_reset_tokens" not in table_names:
-            Base.metadata.create_all(bind=engine)
+    alembic_cfg = Config(Path(__file__).resolve().parent.parent / "alembic.ini")
+    command.upgrade(alembic_cfg, "head")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     reset_stale_sqlite_schema()
     Base.metadata.create_all(bind=engine)
-    migrate_schema()
+    run_migrations()
     ensure_practical_release_schema()
     with SessionLocal() as db:
         seed_database(db)
