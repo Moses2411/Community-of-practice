@@ -42,19 +42,21 @@ def current_practical_release(now: datetime | None = None) -> PracticalRelease:
     today_12 = datetime(today.year, today.month, today.day, 12, tzinfo=LAGOS_TZ)
     today_19 = datetime(today.year, today.month, today.day, 19, tzinfo=LAGOS_TZ)
 
+    WINDOW_DURATION = timedelta(hours=1)
+
     if now_local >= today_19:
         release_at = today_19
-        expires_at = today_8 + timedelta(days=1)
+        expires_at = today_19 + WINDOW_DURATION
     elif now_local >= today_12:
         release_at = today_12
-        expires_at = today_19
+        expires_at = today_12 + WINDOW_DURATION
     elif now_local >= today_8:
         release_at = today_8
-        expires_at = today_12
+        expires_at = today_8 + WINDOW_DURATION
     else:
         yesterday = today - timedelta(days=1)
         release_at = datetime(yesterday.year, yesterday.month, yesterday.day, 19, tzinfo=LAGOS_TZ)
-        expires_at = today_8
+        expires_at = release_at + WINDOW_DURATION
 
     return PracticalRelease(
         key=f"{release_at:%Y-%m-%d}-{release_at.hour:02d}",

@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy import func, select
@@ -74,13 +75,18 @@ def list_practicals(
 
     release = ensure_daily_practicals(db, active_course_ids)
 
+    utc_now = datetime.now(timezone.utc)
     query = (
         select(PracticalExercise)
         .options(
             selectinload(PracticalExercise.course),
             selectinload(PracticalExercise.attempts),
         )
-        .where(PracticalExercise.release_key == release.key)
+        .where(
+            PracticalExercise.release_key == release.key,
+            PracticalExercise.release_at <= utc_now,
+            PracticalExercise.expires_at > utc_now,
+        )
         .order_by(PracticalExercise.course_id, PracticalExercise.practical_type, PracticalExercise.difficulty, PracticalExercise.title)
     )
     if course_id is not None:
