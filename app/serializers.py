@@ -33,8 +33,13 @@ def serialize_user(user: User) -> dict:
 
 def serialize_course(course: Course, user_id: int | None = None) -> dict:
     is_joined = False
+    learning_goal = None
     if user_id is not None:
-        is_joined = any(m.user_id == user_id for m in course.memberships)
+        for m in course.memberships:
+            if m.user_id == user_id:
+                is_joined = True
+                learning_goal = m.learning_goal
+                break
     return {
         "id": course.id,
         "title": course.title,
@@ -47,6 +52,7 @@ def serialize_course(course: Course, user_id: int | None = None) -> dict:
         "discussion_count": len(course.threads),
         "practical_count": len(course.practical_exercises),
         "is_joined": is_joined,
+        "learning_goal": learning_goal,
     }
 
 

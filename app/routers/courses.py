@@ -77,14 +77,32 @@ def join_course(course_id: int, payload: MembershipCreate, db: SessionDep, curre
         select(Membership).where(Membership.course_id == course_id, Membership.user_id == current_user.id)
     )
     if existing:
-        return {"message": "Already joined this course.", "course": serialize_course(course, user_id=current_user.id)}
+        raise HTTPException(status_code=409, detail="You have already joined this course.")
 
-    membership = Membership(user_id=current_user.id, course_id=course_id, learning_goal=payload.learning_goal)
+    if not payload.learning_goal or not payload.learning_goal.strip():
+        raise HTTPException(status_code=400, detail="Please enter a learning goal before joining.")
+
+    membership = Membership(user_id=current_user.id, course_id=course_id, learning_goal=payload.learning_goal.strip())
     db.add(membership)
     log_activity(db, current_user, "course_joined", "course", course_id, {"learning_goal": payload.learning_goal})
     db.commit()
     db.refresh(course)
     return {"message": "Course joined.", "course": serialize_course(course, user_id=current_user.id)}
+
+
+@router.put("/api/courses/{course_id}/goal")
+def update_learning_goal(course_id: int, payload: MembershipCreate, db: SessionDep, current_user: CurrentUser):
+    membership = db.scalar(
+        select(Membership).where(Membership.course_id == course_id, Membership.user_id == current_user.id)
+    )
+    if membership is None:
+        raise HTTPException(status_code=404, detail="You have not joined this course.")
+    if not payload.learning_goal or not payload.learning_goal.strip():
+        raise HTTPException(status_code=400, detail="Learning goal cannot be empty.")
+    membership.learning_goal = payload.learning_goal.strip()
+    log_activity(db, current_user, "goal_updated", "course", course_id, {"learning_goal": payload.learning_goal})
+    db.commit()
+    return {"message": "Learning goal saved."}
 
 
 @router.get("/api/courses/{course_id}/progress")

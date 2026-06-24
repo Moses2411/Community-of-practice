@@ -674,13 +674,19 @@ function renderCourses() {
                   </div>
                   <h2>${escapeHtml(course.title)}</h2>
                   <p class="muted">${escapeHtml(course.description)}</p>
+                  ${course.is_joined && course.learning_goal ? `<p class="muted" style="margin-top:6px"><strong>Goal:</strong> ${escapeHtml(course.learning_goal)}</p>` : ""}
                 </div>
-                <button data-action="join-course" data-id="${course.id}" type="button">Join</button>
+                ${course.is_joined ? "" : `<button data-action="join-course" data-id="${course.id}" type="button">Join</button>`}
               </div>
-              <form class="toolbar" data-form="join-course" data-id="${course.id}">
-                <input name="learning_goal" placeholder="Learning goal for this course" />
+              ${course.is_joined ? `
+              <form class="toolbar" data-form="save-goal" data-id="${course.id}">
+                <input name="learning_goal" placeholder="Update your learning goal" value="${escapeHtml(course.learning_goal || "")}" />
                 <button class="secondary" type="submit">Save Goal</button>
-              </form>
+              </form>` : `
+              <form class="toolbar" data-form="join-course" data-id="${course.id}">
+                <input name="learning_goal" placeholder="Enter a learning goal to join" required />
+                <button class="secondary" type="submit">Join with Goal</button>
+              </form>`}
             </article>
           `
         )
@@ -742,6 +748,7 @@ async function loadMyCoursesProgress(joined) {
               </div>
               <h2>${escapeHtml(course.title)}</h2>
               <p class="muted">${escapeHtml(course.description)}</p>
+              ${course.learning_goal ? `<p class="muted" style="margin-top:4px"><strong>Goal:</strong> ${escapeHtml(course.learning_goal)}</p>` : ""}
             </div>
           </div>
 
@@ -2154,10 +2161,11 @@ content.addEventListener("click", async (event) => {
 
   try {
     if (action === "join-course") {
-      await api(`/api/courses/${id}/join`, { method: "POST", body: JSON.stringify({}) });
-      await refreshCourses();
-      render();
-      showMessage("Course joined.");
+      const form = document.querySelector(`form[data-id="${id}"]`);
+      if (form) {
+        form.querySelector("button[type=submit]").click();
+      }
+      return;
     }
 
     if (action === "view-resource") {
@@ -2342,6 +2350,16 @@ content.addEventListener("submit", async (event) => {
     if (type === "join-course") {
       await api(`/api/courses/${form.dataset.id}/join`, {
         method: "POST",
+        body: JSON.stringify(formData(form)),
+      });
+      await refreshCourses();
+      render();
+      showMessage("Course joined.");
+    }
+
+    if (type === "save-goal") {
+      await api(`/api/courses/${form.dataset.id}/goal`, {
+        method: "PUT",
         body: JSON.stringify(formData(form)),
       });
       await refreshCourses();
