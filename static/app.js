@@ -246,12 +246,15 @@ function applySidebarState() {
 }
 
 async function loadCoreData() {
-  const fetchers = [api("/api/courses"), api("/api/resources")];
+  const fetchers = [
+    api("/api/courses").catch(() => state.courses || []),
+    api("/api/resources").catch(() => state.resources || []),
+  ];
   if (!isControlGroup()) {
-    fetchers.push(api("/api/discussions?include_replies=false"));
-    fetchers.push(api("/api/quizzes"));
-    fetchers.push(api("/api/practicals"));
-    fetchers.push(api("/api/performance"));
+    fetchers.push(api("/api/discussions?include_replies=false").catch(() => state.discussions || []));
+    fetchers.push(api("/api/quizzes").catch(() => state.quizzes || []));
+    fetchers.push(api("/api/practicals").catch(() => state.practicals || []));
+    fetchers.push(api("/api/performance").catch(() => state.performance || null));
   } else {
     fetchers.push(Promise.resolve([]));
     fetchers.push(Promise.resolve([]));
