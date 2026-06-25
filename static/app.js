@@ -139,7 +139,7 @@ function showFormAlert(form, msg) {
   if (alert) { alert.textContent = msg; alert.classList.remove("hidden"); }
 }
 
-async function api(path, options = {}) {
+async function api(path, options = {}, retries = 1) {
   const headers = { ...(options.headers || {}) };
   if (!(options.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
@@ -148,7 +148,20 @@ async function api(path, options = {}) {
     headers.Authorization = `Bearer ${state.token}`;
   }
 
-  const response = await fetch(path, { ...options, headers });
+  let response;
+  try {
+    response = await fetch(path, { ...options, headers });
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, 3000));
+      return api(path, options, retries - 1);
+    }
+    const err = new Error("Cannot reach the server. Check your internet connection or try again shortly.");
+    err.status = 0;
+    err.fields = {};
+    throw err;
+  }
+
   if (!response.ok) {
     let detail = response.statusText;
     let fields = {};
