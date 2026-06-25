@@ -1070,15 +1070,7 @@ function renderChatMessages(courseId) {
       </div>
     </div>
     <div class="chat-messages" id="chat-messages-${courseId}">
-      ${messages.length ? messages.map((m) => `
-        <div class="whatsapp-msg ${m.author_id === state.user.id ? "whatsapp-msg-self" : "whatsapp-msg-other"}">
-          ${m.author_id !== state.user.id ? `<div class="whatsapp-msg-author">${escapeHtml(m.author_name || "Unknown")}</div>` : ""}
-          <div class="whatsapp-msg-bubble">
-            <div class="whatsapp-msg-text">${escapeHtml(m.body)}</div>
-            <div class="whatsapp-msg-time">${new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-          </div>
-        </div>
-      `).join("") : '<div class="chat-empty"><p class="muted">No messages yet. Say hello!</p></div>'}
+      ${renderMessageListHTML(messages)}
     </div>
     <form class="chat-input" data-form="send-chat" data-id="${courseId}">
       <input name="body" placeholder="Type a message..." required autocomplete="off" />
@@ -2192,6 +2184,19 @@ function scrollChatToBottom(courseId) {
   if (el) el.scrollTop = el.scrollHeight;
 }
 
+function renderMessageListHTML(messages) {
+  if (!messages || !messages.length) return '<div class="chat-empty"><p class="muted">No messages yet. Say hello!</p></div>';
+  return messages.map((m) => `
+    <div class="whatsapp-msg ${m.author_id === state.user.id ? "whatsapp-msg-self" : "whatsapp-msg-other"}">
+      ${m.author_id !== state.user.id ? `<div class="whatsapp-msg-author">${escapeHtml(m.author_name || "Unknown")}</div>` : ""}
+      <div class="whatsapp-msg-bubble">
+        <div class="whatsapp-msg-text">${escapeHtml(m.body)}</div>
+        <div class="whatsapp-msg-time">${new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
 function startChatPolling(courseId) {
   if (state.chatPollInterval) clearInterval(state.chatPollInterval);
   state.chatPollInterval = setInterval(async () => {
@@ -2200,12 +2205,11 @@ function startChatPolling(courseId) {
       return;
     }
     await loadChatMessages(courseId);
-    const oldView = state.view;
-    if (oldView === "discussions" && state.activeChatCourse === courseId) {
+    if (state.view === "discussions" && state.activeChatCourse === courseId) {
       const msgContainer = document.getElementById(`chat-messages-${courseId}`);
       if (msgContainer) {
         const wasAtBottom = msgContainer.scrollHeight - msgContainer.scrollTop - msgContainer.clientHeight < 50;
-        renderCourseChat();
+        msgContainer.innerHTML = renderMessageListHTML(state.chatMessages[courseId]);
         if (wasAtBottom) scrollChatToBottom(courseId);
       }
     }
