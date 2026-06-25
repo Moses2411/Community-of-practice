@@ -170,6 +170,10 @@ class ResourceFeedbackCreate(BaseModel):
     comment: str | None = None
 
 
+class ChatMessageCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=5000)
+
+
 class DiscussionThreadCreate(BaseModel):
     course_id: int
     title: str = Field(min_length=3, max_length=200)

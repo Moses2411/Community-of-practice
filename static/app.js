@@ -1033,17 +1033,22 @@ function renderCourseChat() {
           ${joined.length ? joined.map((c) => `
             <button class="chat-course-btn ${activeCourseId == c.id ? "active" : ""}"
               data-action="select-chat-course" data-id="${c.id}" type="button">
-              <span class="badge">${escapeHtml(c.code)}</span>
-              <span>${escapeHtml(c.title)}</span>
+              <span class="chat-course-code">${escapeHtml(c.code)}</span>
+              <span class="chat-course-title">${escapeHtml(c.title)}</span>
             </button>
-          `).join("") : '<div class="muted" style="padding:12px">Join a course to start chatting.</div>'}
+          `).join("") : '<div class="chat-empty-small">Join a course to start chatting.</div>'}
         </div>
       </aside>
 
       <div class="chat-main">
         ${activeCourseId ? renderChatMessages(activeCourseId) : `
           <div class="chat-empty">
-            <p class="muted">Select a course to view its chat room.</p>
+            <div class="chat-empty-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <p class="muted">Select a course to start chatting</p>
           </div>
         `}
       </div>
@@ -1056,21 +1061,24 @@ function renderChatMessages(courseId) {
   const course = courseById(courseId);
   return `
     <div class="chat-header">
-      <h3>${escapeHtml(course ? course.title : "")}</h3>
-      <span class="badge blue">${messages.length} messages</span>
+      <div class="chat-header-info">
+        <div class="chat-header-avatar">${course ? escapeHtml(course.code[0]) : "?"}</div>
+        <div>
+          <h3>${escapeHtml(course ? course.title : "")}</h3>
+          <span class="chat-header-status">${messages.length ? messages.length + " message" + (messages.length !== 1 ? "s" : "") : "No messages"}</span>
+        </div>
+      </div>
     </div>
     <div class="chat-messages" id="chat-messages-${courseId}">
       ${messages.length ? messages.map((m) => `
-        <div class="chat-message ${m.author_id === state.user.id ? "chat-message-self" : ""}">
-          <div class="chat-message-body">
-            <p>${escapeHtml(m.body)}</p>
-          </div>
-          <div class="chat-message-meta">
-            <span class="muted">${escapeHtml(m.author_name || "Unknown")}</span>
-            <span class="muted">${new Date(m.created_at).toLocaleTimeString()}</span>
+        <div class="whatsapp-msg ${m.author_id === state.user.id ? "whatsapp-msg-self" : "whatsapp-msg-other"}">
+          ${m.author_id !== state.user.id ? `<div class="whatsapp-msg-author">${escapeHtml(m.author_name || "Unknown")}</div>` : ""}
+          <div class="whatsapp-msg-bubble">
+            <div class="whatsapp-msg-text">${escapeHtml(m.body)}</div>
+            <div class="whatsapp-msg-time">${new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
           </div>
         </div>
-      `).join("") : '<div class="chat-empty"><p class="muted">No messages yet. Start the conversation!</p></div>'}
+      `).join("") : '<div class="chat-empty"><p class="muted">No messages yet. Say hello!</p></div>'}
     </div>
     <form class="chat-input" data-form="send-chat" data-id="${courseId}">
       <input name="body" placeholder="Type a message..." required autocomplete="off" />
