@@ -9,6 +9,8 @@ if __name__ == "__main__":
     from sqlalchemy import inspect
     from pathlib import Path
 
+    from sqlalchemy import text
+
     from app.practical_schedule import ensure_practical_release_schema
     from app.seed import seed_database
     from db.database import Base, SessionLocal, engine
@@ -22,6 +24,16 @@ if __name__ == "__main__":
         command.stamp(alembic_cfg, "head")
     else:
         command.upgrade(alembic_cfg, "head")
+
+    with engine.connect() as conn:
+        for col in ["attachment_url", "attachment_name", "attachment_type"]:
+            try:
+                conn.execute(text(f"ALTER TABLE chat_messages ADD COLUMN {col} VARCHAR"))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
+    Path("uploads").mkdir(parents=True, exist_ok=True)
 
     ensure_practical_release_schema()
     with SessionLocal() as db:

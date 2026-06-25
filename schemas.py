@@ -171,7 +171,10 @@ class ResourceFeedbackCreate(BaseModel):
 
 
 class ChatMessageCreate(BaseModel):
-    body: str = Field(min_length=1, max_length=5000)
+    body: str = Field(default="", max_length=5000)
+    attachment_url: str | None = None
+    attachment_name: str | None = None
+    attachment_type: str | None = None
 
 
 class DiscussionThreadCreate(BaseModel):

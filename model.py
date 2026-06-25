@@ -444,6 +444,9 @@ class ChatMessage(Base):
     course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
     author_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     body = Column(Text, nullable=False)
+    attachment_url = Column(String, nullable=True)
+    attachment_name = Column(String, nullable=True)
+    attachment_type = Column(String, nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
     course = relationship("Course")

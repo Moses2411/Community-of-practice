@@ -1073,8 +1073,18 @@ function renderChatMessages(courseId) {
       ${renderMessageListHTML(messages)}
     </div>
     <form class="chat-input" data-form="send-chat" data-id="${courseId}">
-      <input name="body" placeholder="Type a message..." required autocomplete="off" />
-      <button type="submit">Send</button>
+      <div class="chat-input-row">
+        <input name="body" placeholder="Type a message..." autocomplete="off" />
+        <label class="chat-file-btn" title="Attach file">
+          <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.txt" hidden onchange="showFilePreview(this, ${courseId})" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </label>
+        <button type="submit">Send</button>
+      </div>
+      <div class="chat-file-preview hidden" id="chat-file-preview-${courseId}">
+        <span class="chat-file-preview-name" id="chat-file-preview-name-${courseId}"></span>
+        <button type="button" class="chat-file-preview-remove" onclick="clearFileInput(${courseId})">&times;</button>
+      </div>
     </form>
   `;
 }
@@ -2184,6 +2194,19 @@ function scrollChatToBottom(courseId) {
   if (el) el.scrollTop = el.scrollHeight;
 }
 
+function renderAttachmentHTML(m) {
+  if (m.attachment_type === "image") {
+    return `<div class="chat-attachment"><img src="${m.attachment_url}" alt="${escapeHtml(m.attachment_name || "")}" class="chat-attachment-image" onclick="window.open('${m.attachment_url}','_blank')" loading="lazy"/></div>`;
+  }
+  const icon = m.attachment_type === "pdf" ? "pdf" : "file";
+  return `<a href="${m.attachment_url}" target="_blank" class="chat-attachment chat-attachment-file">
+    <span class="chat-attachment-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    </span>
+    <span class="chat-attachment-name">${escapeHtml(m.attachment_name || "File")}</span>
+  </a>`;
+}
+
 function renderMessageListHTML(messages) {
   if (!messages || !messages.length) return '<div class="chat-empty"><p class="muted">No messages yet. Say hello!</p></div>';
   return messages.map((m) => `
@@ -2191,10 +2214,32 @@ function renderMessageListHTML(messages) {
       ${m.author_id !== state.user.id ? `<div class="whatsapp-msg-author">${escapeHtml(m.author_name || "Unknown")}</div>` : ""}
       <div class="whatsapp-msg-bubble">
         <div class="whatsapp-msg-text">${escapeHtml(m.body)}</div>
+        ${m.attachment_url ? renderAttachmentHTML(m) : ""}
         <div class="whatsapp-msg-time">${new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
       </div>
     </div>
   `).join("");
+}
+
+function showFilePreview(input, courseId) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const preview = document.getElementById(`chat-file-preview-${courseId}`);
+  const nameSpan = document.getElementById(`chat-file-preview-name-${courseId}`);
+  if (preview && nameSpan) {
+    nameSpan.textContent = file.name;
+    preview.classList.remove("hidden");
+  }
+}
+
+function clearFileInput(courseId) {
+  const form = document.querySelector(`[data-form="send-chat"][data-id="${courseId}"]`);
+  if (form) {
+    const fileInput = form.querySelector('input[name="file"]');
+    if (fileInput) fileInput.value = "";
+  }
+  const preview = document.getElementById(`chat-file-preview-${courseId}`);
+  if (preview) preview.classList.add("hidden");
 }
 
 function startChatPolling(courseId) {
@@ -2796,14 +2841,35 @@ content.addEventListener("submit", async (event) => {
     if (type === "send-chat") {
       const courseId = Number(form.dataset.id);
       const body = form.body?.value?.trim();
-      if (!body) { showMessage("Type a message.", "error"); return; }
-      const optimistic = { id: Date.now(), course_id: courseId, author_id: state.user.id, author_name: state.user.full_name, body, created_at: new Date().toISOString() };
+      const fileInput = form.querySelector('input[name="file"]');
+      const file = fileInput?.files?.[0];
+
+      if (!body && !file) { showMessage("Type a message or attach a file.", "error"); return; }
+
+      let attachmentUrl = null, attachmentName = null, attachmentType = null;
+      if (file) {
+        try {
+          const fd = new FormData();
+          fd.append("file", file);
+          const uploadResult = await api("/api/upload", { method: "POST", body: fd }, 0);
+          attachmentUrl = uploadResult.url;
+          attachmentName = uploadResult.name;
+          attachmentType = uploadResult.type;
+        } catch (uploadErr) {
+          showMessage(uploadErr.message || "File upload failed.", "error");
+          return;
+        }
+      }
+
+      const optimistic = { id: Date.now(), course_id: courseId, author_id: state.user.id, author_name: state.user.full_name, body: body || "", attachment_url: attachmentUrl, attachment_name: attachmentName, attachment_type: attachmentType, created_at: new Date().toISOString() };
       state.chatMessages[courseId] = [...(state.chatMessages[courseId] || []), optimistic];
       form.reset();
+      clearFileInput(courseId);
       renderCourseChat();
       scrollChatToBottom(courseId);
+
       try {
-        await api(`/api/courses/${courseId}/chat`, { method: "POST", body: JSON.stringify({ body }) });
+        await api(`/api/courses/${courseId}/chat`, { method: "POST", body: JSON.stringify({ body: body || "", attachment_url: attachmentUrl, attachment_name: attachmentName, attachment_type: attachmentType }) });
         await loadChatMessages(courseId);
         if (state.activeChatCourse === courseId && state.view === "discussions") {
           renderCourseChat();

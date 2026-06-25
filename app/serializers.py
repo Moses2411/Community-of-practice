@@ -97,6 +97,9 @@ def serialize_chat_message(msg: ChatMessage) -> dict:
         "author_id": msg.author_id,
         "author_name": msg.author.full_name if msg.author else None,
         "body": msg.body,
+        "attachment_url": msg.attachment_url,
+        "attachment_name": msg.attachment_name,
+        "attachment_type": msg.attachment_type,
         "created_at": msg.created_at,
     }
 
