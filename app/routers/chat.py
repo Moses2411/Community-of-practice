@@ -21,8 +21,8 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 @router.post("/api/upload")
 async def upload_file(
-    file: UploadFile = File(...),
     current_user: CurrentUser,
+    file: UploadFile = File(...),
 ):
     ext = os.path.splitext(file.filename or "file")[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
