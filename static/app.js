@@ -2791,15 +2791,25 @@ content.addEventListener("submit", async (event) => {
 
     if (type === "send-chat") {
       const courseId = Number(form.dataset.id);
-      const payload = formData(form);
-      await api(`/api/courses/${courseId}/chat`, { method: "POST", body: JSON.stringify(payload) });
+      const body = form.body?.value?.trim();
+      if (!body) { showMessage("Type a message.", "error"); return; }
+      const optimistic = { id: Date.now(), course_id: courseId, author_id: state.user.id, author_name: state.user.full_name, body, created_at: new Date().toISOString() };
+      state.chatMessages[courseId] = [...(state.chatMessages[courseId] || []), optimistic];
       form.reset();
-      await loadChatMessages(courseId);
-      if (state.activeChatCourse === courseId && state.view === "discussions") {
-        renderCourseChat();
-        scrollChatToBottom(courseId);
+      renderCourseChat();
+      scrollChatToBottom(courseId);
+      try {
+        await api(`/api/courses/${courseId}/chat`, { method: "POST", body: JSON.stringify({ body }) });
+        await loadChatMessages(courseId);
+        if (state.activeChatCourse === courseId && state.view === "discussions") {
+          renderCourseChat();
+          scrollChatToBottom(courseId);
+        }
+      } catch (error) {
+        state.chatMessages[courseId] = (state.chatMessages[courseId] || []).filter((m) => m.id !== optimistic.id);
+        if (state.activeChatCourse === courseId && state.view === "discussions") renderCourseChat();
+        showMessage(error.message || "Failed to send message.", "error");
       }
-      showMessage("Message sent.");
     }
 
     if (type === "practical-submit") {
