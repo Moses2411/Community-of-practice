@@ -1651,6 +1651,22 @@ button.warn { background: var(--accent); }
   word-break: break-all;
 }
 
+.resource-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--surface-strong);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  text-decoration: none;
+  margin-top: 4px;
+}
+
+.resource-file-link:hover {
+  background: var(--line);
+}
+
 .chat-empty {
   flex: 1;
   display: flex;

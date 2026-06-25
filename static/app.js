@@ -941,6 +941,7 @@ function renderResources() {
                           ${resource.url ? `<p class="muted"><a href="${escapeHtml(resource.url)}" target="_blank">Textbook Link</a></p>` : ""}
                           ${resource.video_url ? `<p class="muted"><a href="${escapeHtml(resource.video_url)}" target="_blank">YouTube Videos</a></p>` : ""}
                           ${resource.blog_url ? `<p class="muted"><a href="${escapeHtml(resource.blog_url)}" target="_blank">Blog Posts</a></p>` : ""}
+                          ${resource.file_url ? `<p class="muted"><a href="${escapeHtml(resource.file_url)}" target="_blank" class="resource-file-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${escapeHtml(resource.file_name || "Download File")}</a></p>` : ""}
                         </div>
                         <div class="admin-actions" style="flex-shrink:0">
                           <button data-action="view-resource" data-id="${resource.id}" type="button">Record View</button>
@@ -963,6 +964,8 @@ function renderResources() {
                           <label>Video URL <input name="video_url" value="${escapeHtml(resource.video_url || "")}" /></label>
                           <label>Blog URL <input name="blog_url" value="${escapeHtml(resource.blog_url || "")}" /></label>
                           <label>Body <textarea name="body" rows="3">${escapeHtml(resource.body || "")}</textarea></label>
+                          ${resource.file_url ? `<p class="muted" style="font-size:0.85rem">Attached: ${escapeHtml(resource.file_name || resource.file_url)}</p>` : ""}
+                          <label>Replace File <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.txt" /></label>
                           <div class="toolbar">
                             <button type="submit">Save</button>
                             <button class="secondary" data-action="admin-cancel-edit-resource" data-id="${resource.id}" type="button">Cancel</button>
@@ -1011,6 +1014,7 @@ function renderResources() {
               <label>Video URL <input name="video_url" /></label>
               <label>Blog URL <input name="blog_url" /></label>
               <label>Body <textarea name="body" rows="5"></textarea></label>
+              <label>File <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.txt" /></label>
               <button type="submit">Add Resource</button>
             </form>
           `
@@ -2063,6 +2067,7 @@ async function renderResearch() {
             <label>Video URL <input name="video_url" /></label>
             <label>Blog URL <input name="blog_url" /></label>
             <label>Body <textarea name="body" rows="3"></textarea></label>
+            <label>File <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.txt" /></label>
             <button type="submit">Add Resource</button>
           </form>
         </div>
@@ -2827,9 +2832,29 @@ content.addEventListener("submit", async (event) => {
     }
 
     if (type === "create-resource") {
-      const payload = formData(form);
-      payload.course_id = Number(payload.course_id);
-      payload.estimated_minutes = Number(payload.estimated_minutes || 15);
+      const fd = new FormData(form);
+      const file = fd.get("file");
+      let fileUrl = null, fileName = null;
+      if (file && file.size > 0) {
+        const uploadFd = new FormData();
+        uploadFd.append("file", file);
+        const uploadResult = await api("/api/upload", { method: "POST", body: uploadFd }, 0);
+        fileUrl = uploadResult.url;
+        fileName = uploadResult.name;
+      }
+      const payload = {
+        course_id: Number(fd.get("course_id")),
+        title: fd.get("title"),
+        resource_type: fd.get("resource_type") || "note",
+        difficulty: fd.get("difficulty") || "beginner",
+        estimated_minutes: Number(fd.get("estimated_minutes") || 15),
+        url: fd.get("url") || null,
+        video_url: fd.get("video_url") || null,
+        blog_url: fd.get("blog_url") || null,
+        body: fd.get("body") || null,
+        file_url: fileUrl,
+        file_name: fileName,
+      };
       await api("/api/resources", { method: "POST", body: JSON.stringify(payload) });
       form.reset();
       state.resources = await api("/api/resources");
@@ -2941,9 +2966,29 @@ content.addEventListener("submit", async (event) => {
     }
 
     if (type === "create-resource-from-admin") {
-      const payload = formData(form);
-      payload.course_id = Number(payload.course_id);
-      payload.estimated_minutes = Number(payload.estimated_minutes || 15);
+      const fd = new FormData(form);
+      const file = fd.get("file");
+      let fileUrl = null, fileName = null;
+      if (file && file.size > 0) {
+        const uploadFd = new FormData();
+        uploadFd.append("file", file);
+        const uploadResult = await api("/api/upload", { method: "POST", body: uploadFd }, 0);
+        fileUrl = uploadResult.url;
+        fileName = uploadResult.name;
+      }
+      const payload = {
+        course_id: Number(fd.get("course_id")),
+        title: fd.get("title"),
+        resource_type: fd.get("resource_type") || "note",
+        difficulty: fd.get("difficulty") || "beginner",
+        estimated_minutes: Number(fd.get("estimated_minutes") || 15),
+        url: fd.get("url") || null,
+        video_url: fd.get("video_url") || null,
+        blog_url: fd.get("blog_url") || null,
+        body: fd.get("body") || null,
+        file_url: fileUrl,
+        file_name: fileName,
+      };
       await api("/api/resources", { method: "POST", body: JSON.stringify(payload) });
       form.reset();
       state.resources = await api("/api/resources");
@@ -2952,12 +2997,27 @@ content.addEventListener("submit", async (event) => {
     }
 
     if (type === "update-resource") {
-      const payload = formData(form);
+      const fd = new FormData(form);
+      const file = fd.get("file");
+      let fileUrl = null, fileName = null;
+      if (file && file.size > 0) {
+        const uploadFd = new FormData();
+        uploadFd.append("file", file);
+        const uploadResult = await api("/api/upload", { method: "POST", body: uploadFd }, 0);
+        fileUrl = uploadResult.url;
+        fileName = uploadResult.name;
+      }
+      const payload = {};
+      for (const [key, val] of fd.entries()) {
+        if (key === "file" || key === "course_id") continue;
+        if (val) payload[key] = val;
+      }
       if (payload.estimated_minutes) payload.estimated_minutes = Number(payload.estimated_minutes);
+      if (fileUrl) { payload.file_url = fileUrl; payload.file_name = fileName; }
       await api(`/api/resources/${form.dataset.id}`, { method: "PUT", body: JSON.stringify(payload) });
       document.getElementById(`edit-resource-${form.dataset.id}`)?.classList.add("hidden");
       state.resources = await api("/api/resources");
-      await renderResearch();
+      renderResources();
       showMessage("Resource updated.");
     }
 

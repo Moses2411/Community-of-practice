@@ -113,6 +113,8 @@ class ResourceUpdate(BaseModel):
     video_url: str | None = None
     blog_url: str | None = None
     body: str | None = None
+    file_url: str | None = None
+    file_name: str | None = None
 
 
 class CourseOut(BaseModel):
@@ -143,6 +145,8 @@ class ResourceCreate(BaseModel):
     video_url: str | None = None
     blog_url: str | None = None
     body: str | None = None
+    file_url: str | None = None
+    file_name: str | None = None
 
 
 class ResourceOut(BaseModel):
@@ -158,6 +162,8 @@ class ResourceOut(BaseModel):
     video_url: str | None
     blog_url: str | None
     body: str | None
+    file_url: str | None
+    file_name: str | None
     created_at: datetime
     average_usefulness: float | None = None
     view_count: int = 0

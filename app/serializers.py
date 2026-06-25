@@ -72,6 +72,8 @@ def serialize_resource(resource: Resource) -> dict:
         "video_url": resource.video_url,
         "blog_url": resource.blog_url,
         "body": resource.body,
+        "file_url": resource.file_url,
+        "file_name": resource.file_name,
         "created_at": resource.created_at,
         "average_usefulness": average_usefulness,
         "view_count": len(resource.views),

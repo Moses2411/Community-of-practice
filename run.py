@@ -32,6 +32,12 @@ if __name__ == "__main__":
                 conn.commit()
             except Exception:
                 conn.rollback()
+        for col in ["file_url", "file_name"]:
+            try:
+                conn.execute(text(f"ALTER TABLE resources ADD COLUMN {col} VARCHAR"))
+                conn.commit()
+            except Exception:
+                conn.rollback()
 
     Path("uploads").mkdir(parents=True, exist_ok=True)
 

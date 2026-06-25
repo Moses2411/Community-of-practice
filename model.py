@@ -127,6 +127,8 @@ class Resource(Base):
     video_url = Column(Text, nullable=True)
     blog_url = Column(Text, nullable=True)
     body = Column(Text, nullable=True)
+    file_url = Column(String, nullable=True)
+    file_name = Column(String, nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
     course = relationship("Course", back_populates="resources")

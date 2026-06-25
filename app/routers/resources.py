@@ -76,6 +76,10 @@ def update_resource(resource_id: int, payload: ResourceUpdate, db: SessionDep, c
         resource.blog_url = payload.blog_url
     if payload.body is not None:
         resource.body = payload.body
+    if payload.file_url is not None:
+        resource.file_url = payload.file_url
+    if payload.file_name is not None:
+        resource.file_name = payload.file_name
     log_activity(db, current_user, "resource_updated", "resource", resource_id)
     db.commit()
     db.refresh(resource)
