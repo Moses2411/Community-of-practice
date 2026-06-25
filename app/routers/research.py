@@ -22,6 +22,7 @@ from model import (
     User,
 )
 from model import Resource as ResourceModel
+from schemas import AdminUserUpdate
 
 router = APIRouter()
 
@@ -30,6 +31,21 @@ router = APIRouter()
 def research_users(db: SessionDep, current_user: ResearcherUser):
     users = db.scalars(select(User).order_by(User.created_at.desc())).all()
     return [serialize_user(user) for user in users]
+
+
+@router.patch("/api/admin/users/{user_id}")
+def admin_update_user(user_id: int, payload: AdminUserUpdate, db: SessionDep, current_user: ResearcherUser):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if payload.role is not None:
+        user.role = payload.role
+    if payload.study_group is not None:
+        user.study_group = payload.study_group
+    log_activity(db, current_user, "user_updated", "user", user_id, {"changes": payload.model_dump(exclude_none=True)})
+    db.commit()
+    db.refresh(user)
+    return serialize_user(user)
 
 
 @router.get("/api/research/dashboard")

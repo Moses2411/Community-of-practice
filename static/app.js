@@ -22,6 +22,7 @@ const state = {
   quizTimeLeft: 45,
   quizResult: null,
   quizAttempts: [],
+  adminTab: "overview",
 };
 
 const authScreen = document.querySelector("#auth-screen");
@@ -209,14 +210,15 @@ function renderNav() {
       if (isControlGroup() && ["quizzes", "discussions", "practicals"].includes(id)) return false;
       return true;
     })
-    .map(
-      ([id, label]) => `
-        <button class="nav-btn ${state.view === id ? "active" : ""}" data-view="${id}" type="button" title="${escapeHtml(label)}">
+    .map(([id, label]) => {
+      const displayLabel = id === "research" && state.user?.role === "admin" ? "Admin" : label;
+      return `
+        <button class="nav-btn ${state.view === id ? "active" : ""}" data-view="${id}" type="button" title="${escapeHtml(displayLabel)}">
           <span class="nav-icon">${escapeHtml(navIcon(id))}</span>
-          <span class="nav-label">${escapeHtml(label)}</span>
+          <span class="nav-label">${escapeHtml(displayLabel)}</span>
         </button>
-      `
-    )
+      `;
+    })
     .join("");
 }
 
@@ -1826,68 +1828,191 @@ function renderCourseStats(stats) {
 }
 
 async function renderResearch() {
-  setTitle("Research", "Analytics and exports");
-  content.innerHTML = `<div class="empty">Loading research dashboard...</div>`;
+  setTitle("Admin", "Management dashboard");
+  content.innerHTML = `<div class="empty">Loading admin dashboard...</div>`;
   const [dashboard, users] = await Promise.all([api("/api/research/dashboard"), api("/api/research/users")]);
 
+  const tabs = [
+    ["overview", "Overview"],
+    ["users", "Users"],
+    ["courses", "Courses"],
+    ["exports", "Exports"],
+  ];
+  const activeTab = state.adminTab || "overview";
+
+  function tabBar() {
+    return `<div class="admin-tabs">${tabs.map(([id, label]) => `
+      <button class="admin-tab ${activeTab === id ? "active" : ""}" data-action="admin-tab" data-tab="${id}" type="button">${escapeHtml(label)}</button>
+    `).join("")}</div>`;
+  }
+
+  function renderOverviewTab() {
+    return `
+      <section class="grid">
+        ${metric("Participants", dashboard.users)}
+        ${metric("Experimental", dashboard.experimental_users)}
+        ${metric("Control", dashboard.control_users)}
+        ${metric("Test Attempts", dashboard.quiz_attempts)}
+        ${metric("Avg Test %", dashboard.average_quiz_percentage + "%")}
+        ${metric("Engagement Avg", dashboard.average_engagement_rating)}
+        ${metric("Activity Events", dashboard.activity_events)}
+        ${metric("Feedback Items", dashboard.feedback_items)}
+        ${metric("Reflections", dashboard.reflections)}
+      </section>`;
+  }
+
+  function renderUsersTab() {
+    const searchId = "admin-user-search";
+    return `
+      <div class="toolbar" style="margin-bottom:12px">
+        <input type="search" id="${searchId}" placeholder="Search by name, email, or research ID..." />
+        <span class="muted">${users.length} users</span>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="admin-users-table">
+          <thead>
+            <tr>
+              <th>Research ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Group</th>
+              <th>Joined</th>
+              <th>Last Login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${users.map((u) => `
+              <tr data-user-id="${u.id}">
+                <td><strong>${escapeHtml(u.research_id)}</strong></td>
+                <td>${escapeHtml(u.full_name)}</td>
+                <td class="muted">${escapeHtml(u.email)}</td>
+                <td>
+                  <select data-action="admin-change-role" data-id="${u.id}" ${u.id === state.user.id ? "disabled" : ""}>
+                    ${["student", "facilitator", "researcher", "admin"].map((r) =>
+                      `<option value="${r}" ${u.role === r ? "selected" : ""}>${r}</option>`
+                    ).join("")}
+                  </select>
+                </td>
+                <td>
+                  <select data-action="admin-change-group" data-id="${u.id}">
+                    ${["experimental", "control"].map((g) =>
+                      `<option value="${g}" ${u.study_group === g ? "selected" : ""}>${g}</option>`
+                    ).join("")}
+                  </select>
+                </td>
+                <td class="muted">${u.created_at ? new Date(u.created_at).toLocaleDateString() : "-"}</td>
+                <td class="muted">${u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "Never"}</td>
+                <td>
+                  <button class="secondary" data-action="admin-reset-pw" data-id="${u.id}" type="button" ${u.id === state.user.id ? "disabled" : ""}>Reset PW</button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  function renderCoursesTab() {
+    return `
+      <section class="split">
+        <div class="list">
+          ${state.courses.length ? state.courses.map((c) => `
+            <div class="card compact">
+              <div class="card-header">
+                <div>
+                  <div class="badge-row">
+                    <span class="badge">${escapeHtml(c.code)}</span>
+                    <span class="badge blue">${c.member_count} members</span>
+                  </div>
+                  <h3>${escapeHtml(c.title)}</h3>
+                  <p class="muted">${escapeHtml(c.description || "")}</p>
+                </div>
+              </div>
+            </div>
+          `).join("") : '<div class="empty">No courses yet.</div>'}
+        </div>
+        <form class="panel form-stack" data-form="create-course">
+          <h2>Add Course</h2>
+          <label>Title <input name="title" required /></label>
+          <div class="two-col">
+            <label>Code <input name="code" required /></label>
+            <label>Facilitator <input name="facilitator" /></label>
+          </div>
+          <label>Description <textarea name="description" rows="3"></textarea></label>
+          <button type="submit">Add Course</button>
+        </form>
+      </section>`;
+  }
+
+  function renderExportsTab() {
+    return `
+      <section class="split">
+        <article class="panel stack">
+          <h2>CSV Exports</h2>
+          <div class="export-grid">
+            ${["users", "activity", "quiz_attempts", "feedback", "reflections", "discussions", "academic_records", "survey_responses", "combined"]
+              .map((dataset) => `<button class="secondary" data-action="export" data-id="${dataset}" type="button">${dataset.replaceAll("_", " ")}</button>`)
+              .join("")}
+          </div>
+          <hr class="light" />
+          <h3>Password Reset</h3>
+          <p class="muted">Generate a one-time 8-character reset code for a user.</p>
+          <div class="row" style="gap:8px;display:flex">
+            <select id="reset-user-select" style="flex:1">
+              <option value="">Select a user...</option>
+              ${users
+                .filter((user) => user.role === "student")
+                .map((user) => `<option value="${user.id}">${escapeHtml(user.research_id)} - ${escapeHtml(user.full_name)}</option>`)
+                .join("")}
+            </select>
+            <button class="secondary" data-action="generate-reset-token" type="button">Generate Code</button>
+          </div>
+          <div id="reset-code-display" class="hidden" style="margin-top:8px;padding:12px;background:var(--surface-strong);border-radius:8px;text-align:center;font-family:monospace;font-size:1.2rem;letter-spacing:2px"></div>
+        </article>
+
+        <form class="panel form-stack" data-form="academic-record">
+          <h2>Add Academic Record</h2>
+          <label>Student
+            <select name="user_id">
+              ${users
+                .filter((user) => user.role === "student")
+                .map((user) => `<option value="${user.id}">${escapeHtml(user.research_id)} - ${escapeHtml(user.full_name)}</option>`)
+                .join("")}
+            </select>
+          </label>
+          <label>Assessment <input name="assessment_name" placeholder="Course exam, assignment, post-test" required /></label>
+          <div class="two-col">
+            <label>Type <input name="assessment_type" value="external" /></label>
+            <label>Score <input name="score" type="number" min="0" step="0.01" required /></label>
+          </div>
+          <label>Total <input name="total" type="number" min="1" step="0.01" value="100" required /></label>
+          <label>Notes <textarea name="notes" rows="3"></textarea></label>
+          <button type="submit">Save Record</button>
+        </form>
+      </section>`;
+  }
+
+  const tabContent = {
+    overview: renderOverviewTab(),
+    users: renderUsersTab(),
+    courses: renderCoursesTab(),
+    exports: renderExportsTab(),
+  };
+
   content.innerHTML = `
-    <section class="grid">
-      ${metric("Participants", dashboard.users)}
-      ${metric("Experimental", dashboard.experimental_users)}
-      ${metric("Control", dashboard.control_users)}
-      ${metric("Test Attempts", dashboard.quiz_attempts)}
-      ${metric("Average Test %", dashboard.average_quiz_percentage)}
-      ${metric("Engagement Avg", dashboard.average_engagement_rating)}
-      ${metric("Activity Events", dashboard.activity_events)}
-      ${metric("Feedback Items", dashboard.feedback_items)}
-      ${metric("Reflections", dashboard.reflections)}
-    </section>
-
-    <section class="split">
-      <article class="panel stack">
-        <h2>CSV Exports</h2>
-        <div class="export-grid">
-          ${["users", "activity", "quiz_attempts", "feedback", "reflections", "discussions", "academic_records", "survey_responses", "combined"]
-            .map((dataset) => `<button class="secondary" data-action="export" data-id="${dataset}" type="button">${dataset.replaceAll("_", " ")}</button>`)
-            .join("")}
-        </div>
-        <hr class="light" />
-        <h3>Password Reset</h3>
-        <p class="muted">Generate a one-time 8-character reset code for a user.</p>
-        <div class="row" style="gap:8px;display:flex">
-          <select id="reset-user-select" style="flex:1">
-            <option value="">Select a user...</option>
-            ${users
-              .filter((user) => user.role === "student")
-              .map((user) => `<option value="${user.id}">${escapeHtml(user.research_id)} - ${escapeHtml(user.full_name)}</option>`)
-              .join("")}
-          </select>
-          <button class="secondary" data-action="generate-reset-token" type="button">Generate Code</button>
-        </div>
-        <div id="reset-code-display" class="hidden" style="margin-top:8px;padding:12px;background:var(--surface-strong);border-radius:8px;text-align:center;font-family:monospace;font-size:1.2rem;letter-spacing:2px"></div>
-      </article>
-
-      <form class="panel form-stack" data-form="academic-record">
-        <h2>Add Academic Record</h2>
-        <label>Student
-          <select name="user_id">
-            ${users
-              .filter((user) => user.role === "student")
-              .map((user) => `<option value="${user.id}">${escapeHtml(user.research_id)} - ${escapeHtml(user.full_name)}</option>`)
-              .join("")}
-          </select>
-        </label>
-        <label>Assessment <input name="assessment_name" placeholder="Course exam, assignment, post-test" required /></label>
-        <div class="two-col">
-          <label>Type <input name="assessment_type" value="external" /></label>
-          <label>Score <input name="score" type="number" min="0" step="0.01" required /></label>
-        </div>
-        <label>Total <input name="total" type="number" min="1" step="0.01" value="100" required /></label>
-        <label>Notes <textarea name="notes" rows="3"></textarea></label>
-        <button type="submit">Save Record</button>
-      </form>
-    </section>
+    ${tabBar()}
+    <div class="admin-tab-content">${tabContent[activeTab] || tabContent.overview}</div>
   `;
+
+  document.getElementById("admin-user-search")?.addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll("#admin-users-table tbody tr").forEach((row) => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(q) ? "" : "none";
+    });
+  });
 }
 
 async function render() {
@@ -2114,6 +2239,24 @@ content.addEventListener("change", async (event) => {
     clearQuizTimer();
     setTimeout(() => advanceToNextQuestion(), 400);
   }
+
+  const adminSelect = event.target.closest("[data-action]");
+  if (adminSelect) {
+    const action = adminSelect.dataset.action;
+    const id = adminSelect.dataset.id;
+    try {
+      if (action === "admin-change-role") {
+        await api(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ role: adminSelect.value }) });
+        showMessage("Role updated.");
+      }
+      if (action === "admin-change-group") {
+        await api(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ study_group: adminSelect.value }) });
+        showMessage("Study group updated.");
+      }
+    } catch (error) {
+      showMessage(error.message, "error");
+    }
+  }
 });
 
 authScreen.addEventListener("click", (event) => {
@@ -2171,7 +2314,8 @@ content.addEventListener("click", async (event) => {
     if (action === "view-resource") {
       await api(`/api/resources/${id}?seconds_spent=30`);
       state.resources = await api("/api/resources");
-      render();
+      if (state.view === "resources") renderResources();
+      else if (state.view === "mycourses") renderMyCourses();
       showMessage("Resource view recorded.");
     }
 
@@ -2255,9 +2399,8 @@ content.addEventListener("click", async (event) => {
       state.selectedCourse = button.dataset.course || "";
       state.selectedPracticalType = button.dataset.type || "";
       renderNav();
+      await refreshPracticals();
       renderPracticals();
-      refreshPracticals().then(() => { if (state.view === "practicals") renderPracticals(); });
-      refreshPerformance();
     }
 
     if (action === "practical-history") {
@@ -2303,6 +2446,16 @@ content.addEventListener("click", async (event) => {
       await api("/api/notifications/read-all", { method: "POST" });
       await updateNotificationBadge();
       document.querySelector("#notification-btn").click();
+    }
+
+    if (action === "admin-tab") {
+      state.adminTab = button.dataset.tab || "overview";
+      await renderResearch();
+    }
+
+    if (action === "admin-reset-pw") {
+      const result = await api(`/api/admin/users/${id}/generate-reset-token`, { method: "POST" });
+      showMessage(`Reset code: ${result.code} (expires in ${result.expires_in_hours}h)`, "success");
     }
 
     if (action === "practical-run") {
@@ -2447,6 +2600,15 @@ content.addEventListener("submit", async (event) => {
       form.reset();
       await renderResearch();
       showMessage("Academic record saved.");
+    }
+
+    if (type === "create-course") {
+      const payload = formData(form);
+      await api("/api/courses", { method: "POST", body: JSON.stringify(payload) });
+      form.reset();
+      state.courses = await api("/api/courses");
+      render();
+      showMessage("Course created.");
     }
 
     if (type === "survey-submit") {

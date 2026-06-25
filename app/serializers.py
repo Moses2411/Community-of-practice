@@ -28,6 +28,7 @@ def serialize_user(user: User) -> dict:
         "level": user.level,
         "interests": user.interests,
         "created_at": user.created_at,
+        "last_login_at": user.last_login_at,
     }
 
 

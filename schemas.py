@@ -81,6 +81,11 @@ class TokenPasswordReset(BaseModel):
     new_password: str = Field(min_length=6, max_length=128)
 
 
+class AdminUserUpdate(BaseModel):
+    role: str | None = None
+    study_group: str | None = None
+
+
 class GenerateResetToken(BaseModel):
     user_id: int
 

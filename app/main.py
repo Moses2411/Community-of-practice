@@ -1,6 +1,6 @@
 import os
+import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,34 +27,10 @@ from app.routers import (
     resources,
     surveys,
 )
-from app.practical_schedule import ensure_practical_release_schema
-from app.seed import seed_database
-from db.database import SessionLocal, engine
-
-
-def run_migrations():
-    from alembic.config import Config
-    from alembic import command
-
-    alembic_cfg = Config(Path(__file__).resolve().parent.parent / "alembic.ini")
-    command.upgrade(alembic_cfg, "head")
-
-
-MIGRATION_LOCK = Path("/tmp/.migration_done")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if os.environ.get("SKIP_MIGRATIONS") != "1":
-        if not MIGRATION_LOCK.exists():
-            run_migrations()
-            try:
-                MIGRATION_LOCK.touch()
-            except OSError:
-                pass
-    ensure_practical_release_schema()
-    with SessionLocal() as db:
-        seed_database(db)
     yield
 
 

@@ -176,29 +176,42 @@ def performance_summary(db: SessionDep, current_user: CurrentUser):
     if not memberships:
         return {"strong": [], "needs_improvement": [], "courses": []}
 
+    uid = current_user.id
+    course_ids = [m.course_id for m in memberships]
+
+    quiz_avgs = dict(
+        db.execute(
+            select(Quiz.course_id, func.avg(QuizAttempt.score / QuizAttempt.total_points * 100))
+            .join(QuizAttempt, QuizAttempt.quiz_id == Quiz.id)
+            .where(QuizAttempt.user_id == uid, Quiz.course_id.in_(course_ids), QuizAttempt.total_points > 0)
+            .group_by(Quiz.course_id)
+        ).all()
+    )
+
+    practical_avgs = dict(
+        db.execute(
+            select(PracticalExercise.course_id, func.avg(PracticalAttempt.score / PracticalAttempt.total_points * 100))
+            .join(PracticalAttempt, PracticalAttempt.exercise_id == PracticalExercise.id)
+            .where(PracticalAttempt.user_id == uid, PracticalExercise.course_id.in_(course_ids), PracticalAttempt.total_points > 0)
+            .group_by(PracticalExercise.course_id)
+        ).all()
+    )
+
+    resource_view_counts = dict(
+        db.execute(
+            select(Resource.course_id, func.count(ResourceView.id))
+            .join(ResourceView, ResourceView.resource_id == Resource.id)
+            .where(ResourceView.user_id == uid, Resource.course_id.in_(course_ids))
+            .group_by(Resource.course_id)
+        ).all()
+    )
+
     rows = []
     for membership in memberships:
         course = membership.course
-        quiz_average = db.scalar(
-            select(func.avg(QuizAttempt.score / QuizAttempt.total_points * 100))
-            .join(Quiz, QuizAttempt.quiz_id == Quiz.id)
-            .where(QuizAttempt.user_id == current_user.id, Quiz.course_id == course.id, QuizAttempt.total_points > 0)
-        )
-        practical_average = db.scalar(
-            select(func.avg(PracticalAttempt.score / PracticalAttempt.total_points * 100))
-            .join(PracticalExercise, PracticalAttempt.exercise_id == PracticalExercise.id)
-            .where(
-                PracticalAttempt.user_id == current_user.id,
-                PracticalExercise.course_id == course.id,
-                PracticalAttempt.total_points > 0,
-            )
-        )
-        resource_views = db.scalar(
-            select(func.count(ResourceView.id)).where(
-                ResourceView.user_id == current_user.id,
-                ResourceView.resource.has(course_id=course.id),
-            )
-        ) or 0
+        quiz_average = quiz_avgs.get(course.id)
+        practical_average = practical_avgs.get(course.id)
+        resource_views = resource_view_counts.get(course.id, 0)
         resource_count = len(course.resources)
         resource_percentage = (resource_views / resource_count * 100) if resource_count else 0
 
