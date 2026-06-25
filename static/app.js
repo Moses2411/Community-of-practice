@@ -2032,7 +2032,7 @@ async function render() {
 }
 
 async function refreshAndRender() {
-  content.innerHTML = '<section class="stack"><div class="empty">Loading...</div></section>';
+  render();
   await loadCoreData();
   await render();
 }
@@ -2707,9 +2707,15 @@ async function boot() {
     showApp();
     await refreshAndRender();
     startNotificationPolling();
-  } catch {
-    clearSession();
+  } catch (error) {
     document.querySelector("#boot-loader").classList.add("hidden");
+    if (error.status === 401) {
+      clearSession();
+      showMessage("Your session has expired. Please sign in again.", "error");
+    } else {
+      showLanding();
+      showMessage("Could not reach the server. Check your connection and try again.", "error");
+    }
   }
 }
 
