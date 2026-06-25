@@ -26,6 +26,7 @@ const state = {
   chatMessages: {},
   activeChatCourse: null,
   chatPollInterval: null,
+  practicalIndex: 0,
 };
 
 const authScreen = document.querySelector("#auth-screen");
@@ -1152,20 +1153,77 @@ function renderPracticals() {
         </div>
       </article>
 
-      ${isExpanded ? `
-        <div class="practical-expanded">
-          <div class="toolbar">
-            <button class="secondary" data-action="back-practical-types" type="button">← All Sections</button>
-            <span class="badge purple">${escapeHtml(practicalTypeLabel(expandedType))}</span>
-          </div>
-          <div class="list">
-            ${expandedExercises.map((ex) => renderPracticalCard(ex)).join("")}
-          </div>
-        </div>
-      ` : ""}
+      ${isExpanded ? renderSinglePractical(expandedExercises, expandedType) : ""}
     </section>
   `;
-  startPracticalTimers();
+  if (isExpanded) startSinglePracticalTimer();
+  else clearPracticalTimers();
+}
+
+function renderSinglePractical(exercises, type) {
+  const total = exercises.length;
+  const idx = Math.min(state.practicalIndex, total - 1);
+  const ex = exercises[idx];
+  if (!ex) {
+    state.selectedPracticalType = "";
+    state.practicalIndex = 0;
+    return `<div class="empty">No exercises available.</div>`;
+  }
+  const isLast = idx >= total - 1;
+  return `
+    <div class="practical-expanded">
+      <div class="toolbar">
+        <button class="secondary" data-action="back-practical-types" type="button">← All Sections</button>
+        <span class="badge purple">${escapeHtml(practicalTypeLabel(type))}</span>
+        <span class="badge blue">Exercise ${idx + 1} of ${total}</span>
+        <span class="badge gold">${escapeHtml(ex.difficulty)}</span>
+      </div>
+      ${renderPracticalCard(ex)}
+      <div class="toolbar" style="justify-content:space-between">
+        <div>
+          <span class="muted">${escapeHtml(ex.course_code || "")} · ${escapeHtml(ex.title)}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="secondary" data-action="next-practical" type="button">${isLast ? "Finish" : "Skip →"}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function clearPracticalTimers() {
+  if (window.__practicalTimerInterval) {
+    clearInterval(window.__practicalTimerInterval);
+    window.__practicalTimerInterval = null;
+  }
+}
+
+function startSinglePracticalTimer() {
+  clearPracticalTimers();
+  const el = document.querySelector(".lc-timer");
+  if (!el) return;
+  const totalSeconds = 600;
+  let remaining = totalSeconds;
+  const update = () => {
+    const m = String(Math.floor(remaining / 60)).padStart(2, "0");
+    const s = String(remaining % 60).padStart(2, "0");
+    el.textContent = `${m}:${s}`;
+  };
+  update();
+  window.__practicalTimerInterval = setInterval(() => {
+    remaining--;
+    update();
+    if (remaining <= 0) {
+      clearPracticalTimers();
+      el.textContent = "Time's up!";
+      el.classList.add("lc-timer-expired");
+      const card = el.closest(".lc-card");
+      if (card) {
+        card.querySelectorAll("[data-action='practical-run'], [data-action='practical-submit-btn']")
+          .forEach((btn) => btn.disabled = true);
+      }
+    }
+  }, 1000);
 }
 
 function renderWaitingLobby(nextTime) {
@@ -1409,6 +1467,7 @@ function renderPracticalResult(result) {
       </article>
 
       <div class="toolbar">
+        <button class="secondary" data-action="next-practical" type="button">Next Exercise →</button>
         <button class="secondary" data-action="back-practical-types" type="button">← Back to Sections</button>
         <button class="secondary" data-action="practical-history" type="button">History</button>
       </div>
@@ -2488,11 +2547,24 @@ content.addEventListener("click", async (event) => {
     if (action === "select-practical-type") {
       state.selectedPracticalType = button.dataset.type || "";
       state.selectedCourse = "";
+      state.practicalIndex = 0;
+      renderPracticals();
+    }
+
+    if (action === "next-practical") {
+      const exercises = state.practicals.filter((e) => e.practical_type === state.selectedPracticalType);
+      state.practicalIndex++;
+      if (state.practicalIndex >= exercises.length) {
+        state.selectedPracticalType = "";
+        state.practicalIndex = 0;
+      }
       renderPracticals();
     }
 
     if (action === "back-practical-types") {
       state.selectedPracticalType = "";
+      state.practicalIndex = 0;
+      clearPracticalTimers();
       renderPracticals();
     }
 
@@ -2894,43 +2966,6 @@ async function boot() {
       showMessage("Could not reach the server. Check your connection and try again.", "error");
     }
   }
-}
-
-function startPracticalTimers() {
-  if (window.__practicalTimerIntervals) {
-    window.__practicalTimerIntervals.forEach(clearInterval);
-  }
-  window.__practicalTimerIntervals = [];
-
-  document.querySelectorAll("[data-timer]").forEach((el) => {
-    const totalSeconds = 600;
-    let remaining = totalSeconds;
-
-    const update = () => {
-      const m = String(Math.floor(remaining / 60)).padStart(2, "0");
-      const s = String(remaining % 60).padStart(2, "0");
-      el.textContent = `${m}:${s}`;
-    };
-    update();
-
-    const interval = setInterval(() => {
-      remaining--;
-      update();
-      if (remaining <= 0) {
-        clearInterval(interval);
-        const exId = el.dataset.timer;
-        el.textContent = "Time's up!";
-        el.classList.add("lc-timer-expired");
-        const card = el.closest(".lc-card");
-        if (card) {
-          card.querySelectorAll("[data-action='practical-run'], [data-action='practical-submit-btn']")
-            .forEach((btn) => btn.disabled = true);
-        }
-      }
-    }, 1000);
-
-    window.__practicalTimerIntervals.push(interval);
-  });
 }
 
 boot();
