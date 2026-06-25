@@ -16,8 +16,9 @@ if __name__ == "__main__":
     alembic_cfg = Config(Path(__file__).resolve().parent / "alembic.ini")
     inspector = inspect(engine)
 
+    Base.metadata.create_all(bind=engine)
+
     if "alembic_version" not in inspector.get_table_names():
-        Base.metadata.create_all(bind=engine)
         command.stamp(alembic_cfg, "head")
     else:
         command.upgrade(alembic_cfg, "head")
