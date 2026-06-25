@@ -437,6 +437,19 @@ class SurveyAnswer(Base):
     question = relationship("SurveyQuestion", back_populates="answers")
 
 
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    author_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+
+    course = relationship("Course")
+    author = relationship("User")
+
+
 class Notification(Base):
     __tablename__ = "notifications"
 

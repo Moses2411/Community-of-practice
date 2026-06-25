@@ -15,6 +15,7 @@ from app.routers import (
     academic,
     activity,
     auth,
+    chat,
     courses,
     discussions,
     feedback,
@@ -58,6 +59,7 @@ if STATIC_DIR.exists():
 
 app.include_router(pages_router)
 app.include_router(auth.router)
+app.include_router(chat.router)
 app.include_router(courses.router)
 app.include_router(resources.router)
 app.include_router(surveys.router)

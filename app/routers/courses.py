@@ -19,7 +19,7 @@ from model import (
     ResourceView,
     Resource,
 )
-from schemas import CourseCreate, MembershipCreate
+from schemas import CourseCreate, CourseUpdate, MembershipCreate
 
 router = APIRouter()
 
@@ -65,6 +65,41 @@ def create_course(payload: CourseCreate, db: SessionDep, current_user: ContentMa
         raise HTTPException(status_code=409, detail="A course with this title or code already exists.") from exc
     db.refresh(course)
     return serialize_course(course)
+
+
+@router.put("/api/courses/{course_id}")
+def update_course(course_id: int, payload: CourseUpdate, db: SessionDep, current_user: ContentManagerUser):
+    course = db.get(Course, course_id)
+    if course is None:
+        raise HTTPException(status_code=404, detail="Course not found.")
+    if payload.title is not None:
+        course.title = payload.title.strip()
+    if payload.code is not None:
+        course.code = payload.code.strip().upper()
+    if payload.description is not None:
+        course.description = payload.description
+    if payload.facilitator is not None:
+        course.facilitator = payload.facilitator
+    try:
+        db.flush()
+        log_activity(db, current_user, "course_updated", "course", course_id)
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="A course with this title or code already exists.") from exc
+    db.refresh(course)
+    return serialize_course(course)
+
+
+@router.delete("/api/courses/{course_id}")
+def delete_course(course_id: int, db: SessionDep, current_user: ContentManagerUser):
+    course = db.get(Course, course_id)
+    if course is None:
+        raise HTTPException(status_code=404, detail="Course not found.")
+    log_activity(db, current_user, "course_deleted", "course", course_id)
+    db.delete(course)
+    db.commit()
+    return {"message": "Course deleted."}
 
 
 @router.post("/api/courses/{course_id}/join")

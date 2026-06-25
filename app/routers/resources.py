@@ -5,7 +5,7 @@ from app.dependencies import ContentManagerUser, CurrentUser, SessionDep, CONTEN
 from app.serializers import serialize_resource
 from app.utils import log_activity
 from model import Course, Membership, Resource, ResourceFeedback, ResourceView
-from schemas import ResourceCreate, ResourceFeedbackCreate
+from schemas import ResourceCreate, ResourceFeedbackCreate, ResourceUpdate
 
 router = APIRouter()
 
@@ -53,6 +53,44 @@ def create_resource(payload: ResourceCreate, db: SessionDep, current_user: Conte
     db.commit()
     db.refresh(resource)
     return serialize_resource(resource)
+
+
+@router.put("/api/resources/{resource_id}")
+def update_resource(resource_id: int, payload: ResourceUpdate, db: SessionDep, current_user: ContentManagerUser):
+    resource = db.get(Resource, resource_id)
+    if resource is None:
+        raise HTTPException(status_code=404, detail="Resource not found.")
+    if payload.title is not None:
+        resource.title = payload.title.strip()
+    if payload.resource_type is not None:
+        resource.resource_type = payload.resource_type
+    if payload.difficulty is not None:
+        resource.difficulty = payload.difficulty
+    if payload.estimated_minutes is not None:
+        resource.estimated_minutes = payload.estimated_minutes
+    if payload.url is not None:
+        resource.url = payload.url
+    if payload.video_url is not None:
+        resource.video_url = payload.video_url
+    if payload.blog_url is not None:
+        resource.blog_url = payload.blog_url
+    if payload.body is not None:
+        resource.body = payload.body
+    log_activity(db, current_user, "resource_updated", "resource", resource_id)
+    db.commit()
+    db.refresh(resource)
+    return serialize_resource(resource)
+
+
+@router.delete("/api/resources/{resource_id}")
+def delete_resource(resource_id: int, db: SessionDep, current_user: ContentManagerUser):
+    resource = db.get(Resource, resource_id)
+    if resource is None:
+        raise HTTPException(status_code=404, detail="Resource not found.")
+    log_activity(db, current_user, "resource_deleted", "resource", resource_id)
+    db.delete(resource)
+    db.commit()
+    return {"message": "Resource deleted."}
 
 
 @router.get("/api/resources/{resource_id}")

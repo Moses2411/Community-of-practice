@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 
 from app.dependencies import ResearcherUser, SessionDep
 from app.serializers import serialize_user
@@ -10,6 +11,7 @@ from model import (
     Course,
     DiscussionReply,
     DiscussionThread,
+    Notification,
     PlatformFeedback,
     QuizAttempt,
     Reflection,
@@ -292,6 +294,48 @@ def export_survey_responses(db) -> tuple[list[str], list[list]]:
          "question_id", "question_prompt", "dimension", "rating", "completed_at"],
         rows,
     )
+
+
+@router.get("/api/research/activity")
+def research_activity(
+    db: SessionDep,
+    current_user: ResearcherUser,
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    logs = db.scalars(
+        select(ActivityLog)
+        .options(selectinload(ActivityLog.user))
+        .order_by(ActivityLog.created_at.desc())
+        .limit(limit)
+    ).all()
+    return [
+        {
+            "id": log.id,
+            "user_id": log.user_id,
+            "research_id": log.user.research_id if log.user else None,
+            "user_name": log.user.full_name if log.user else None,
+            "action": log.action,
+            "entity_type": log.entity_type,
+            "entity_id": log.entity_id,
+            "metadata": log.metadata_json,
+            "created_at": log.created_at,
+        }
+        for log in logs
+    ]
+
+
+@router.post("/api/admin/notifications/broadcast")
+def broadcast_notification(payload: dict, db: SessionDep, current_user: ResearcherUser):
+    message = (payload.get("message") or "").strip()
+    kind = (payload.get("kind") or "system").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+    user_ids = db.scalars(select(User.id).where(User.is_active == True)).all()
+    for uid in user_ids:
+        db.add(Notification(user_id=uid, message=message, kind=kind, entity_type="broadcast"))
+    db.commit()
+    log_activity(db, current_user, "notification_broadcast", "notification", None, {"recipient_count": len(user_ids)})
+    return {"message": f"Notification sent to {len(user_ids)} users."}
 
 
 EXPORTERS = {

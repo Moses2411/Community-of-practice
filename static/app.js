@@ -23,6 +23,9 @@ const state = {
   quizResult: null,
   quizAttempts: [],
   adminTab: "overview",
+  chatMessages: {},
+  activeChatCourse: null,
+  chatPollInterval: null,
 };
 
 const authScreen = document.querySelector("#auth-screen");
@@ -47,7 +50,7 @@ const navItems = [
   ["mycourses", "My Courses"],
   ["resources", "Resources"],
   ["practicals", "Practicals"],
-  ["discussions", "Discussions"],
+  ["discussions", "Chat"],
   ["quizzes", "Tests"],
   ["surveys", "Surveys"],
   ["reflections", "Reflections"],
@@ -229,7 +232,7 @@ function navIcon(id) {
     mycourses: "M",
     resources: "R",
     practicals: "P",
-    discussions: "D",
+    discussions: "H",
     quizzes: "T",
     surveys: "S",
     reflections: "J",
@@ -251,20 +254,17 @@ async function loadCoreData() {
     api("/api/resources").catch(() => state.resources || []),
   ];
   if (!isControlGroup()) {
-    fetchers.push(api("/api/discussions?include_replies=false").catch(() => state.discussions || []));
     fetchers.push(api("/api/quizzes").catch(() => state.quizzes || []));
     fetchers.push(api("/api/practicals").catch(() => state.practicals || []));
     fetchers.push(api("/api/performance").catch(() => state.performance || null));
   } else {
     fetchers.push(Promise.resolve([]));
     fetchers.push(Promise.resolve([]));
-    fetchers.push(Promise.resolve([]));
     fetchers.push(Promise.resolve(null));
   }
-  const [courses, resources, discussions, quizzes, practicals, performance] = await Promise.all(fetchers);
+  const [courses, resources, quizzes, practicals, performance] = await Promise.all(fetchers);
   state.courses = courses;
   state.resources = resources;
-  state.discussions = discussions;
   state.quizzes = quizzes;
   state.practicals = practicals;
   state.performance = performance;
@@ -536,7 +536,7 @@ function renderOverview() {
   const courseCount = state.courses.length;
   const resourceCount = state.resources.length;
   const practicalCount = isControlGroup() ? 0 : state.practicals.length;
-  const discussionCount = isControlGroup() ? 0 : state.discussions.length;
+
   const testCount = isControlGroup() ? 0 : state.quizzes.length;
 
   const codingExercises = (isControlGroup() ? [] : state.practicals).filter((e) => ["python", "java"].includes(e.practical_type));
@@ -549,7 +549,6 @@ function renderOverview() {
       ${metric("Courses", courseCount)}
       ${metric("Learning Resources", resourceCount)}
       ${isControlGroup() ? "" : metric("Practicals", practicalCount)}
-      ${isControlGroup() ? "" : metric("Discussions", discussionCount)}
       ${isControlGroup() ? "" : metric("Tests", testCount)}
       ${metric("Research ID", state.user.research_id, "blue")}
       ${metric("Study Group", state.user.study_group)}
@@ -731,7 +730,7 @@ async function loadMyCoursesProgress(joined) {
       const courseResources = state.resources.filter((r) => String(r.course_id) === String(course.id));
       const courseTests = state.quizzes.filter((q) => String(q.course_id) === String(course.id));
       const coursePracticals = state.practicals.filter((p) => String(p.course_id) === String(course.id));
-      const courseDiscussions = state.discussions.filter((d) => String(d.course_id) === String(course.id));
+      const courseChatMessages = state.chatMessages[course.id] || [];
       const progress = progressMap[course.id] || {};
       const performance = performanceForCourse(course.id);
 
@@ -880,32 +879,9 @@ async function loadMyCoursesProgress(joined) {
           </details>
 
           <details open>
-            <summary><strong>Discussions</strong> <span class="badge">${courseDiscussions.length}</span></summary>
+            <summary><strong>Chat</strong> <span class="badge blue">${courseChatMessages.length} messages</span></summary>
             <div class="list" style="margin-top:10px">
-              ${
-                courseDiscussions.length
-                  ? courseDiscussions
-                      .map(
-                        (t) => `
-                          <div class="card compact">
-                            <div class="card-header">
-                              <div>
-                                <div class="badge-row">
-                                  <span class="badge">${t.reply_count} replies</span>
-                                  ${t.is_resolved ? `<span class="badge gold">resolved</span>` : `<span class="badge">open</span>`}
-                                </div>
-                                <h3>${escapeHtml(t.title)}</h3>
-                                <p>${escapeHtml(t.body)}</p>
-                                <p class="muted">${escapeHtml(t.author_name || "Student")} ${t.tags ? `· ${escapeHtml(t.tags)}` : ""}</p>
-                              </div>
-                              <button class="secondary" data-action="load-thread" data-id="${t.id}" type="button">Open</button>
-                            </div>
-                          </div>
-                        `
-                      )
-                      .join("")
-                  : `<div class="empty">No discussions yet.</div>`
-              }
+              <button class="secondary" data-action="open-course-chat" data-id="${course.id}" type="button">Open Course Chat</button>
             </div>
           </details>
               `
@@ -952,8 +928,33 @@ function renderResources() {
                           ${resource.video_url ? `<p class="muted"><a href="${escapeHtml(resource.video_url)}" target="_blank">YouTube Videos</a></p>` : ""}
                           ${resource.blog_url ? `<p class="muted"><a href="${escapeHtml(resource.blog_url)}" target="_blank">Blog Posts</a></p>` : ""}
                         </div>
-                        <button data-action="view-resource" data-id="${resource.id}" type="button">Record View</button>
+                        <div class="admin-actions" style="flex-shrink:0">
+                          <button data-action="view-resource" data-id="${resource.id}" type="button">Record View</button>
+                          ${canManageContent() ? `<button class="secondary" data-action="admin-edit-resource" data-id="${resource.id}" type="button">Edit</button>` : ""}
+                          ${canManageContent() ? `<button class="warn" data-action="admin-delete-resource" data-id="${resource.id}" type="button">Del</button>` : ""}
+                        </div>
                       </div>
+                      ${canManageContent() ? `
+                      <div id="edit-resource-${resource.id}" class="hidden" style="margin:8px 0;padding:12px;border:1px solid var(--line);border-radius:6px;background:var(--surface-strong)">
+                        <form class="form-stack" data-form="update-resource" data-id="${resource.id}">
+                          <div class="two-col">
+                            <label>Title <input name="title" value="${escapeHtml(resource.title)}" /></label>
+                            <label>Type <input name="resource_type" value="${escapeHtml(resource.resource_type)}" /></label>
+                          </div>
+                          <div class="two-col">
+                            <label>Difficulty <input name="difficulty" value="${escapeHtml(resource.difficulty)}" /></label>
+                            <label>Minutes <input name="estimated_minutes" type="number" value="${resource.estimated_minutes}" /></label>
+                          </div>
+                          <label>URL <input name="url" value="${escapeHtml(resource.url || "")}" /></label>
+                          <label>Video URL <input name="video_url" value="${escapeHtml(resource.video_url || "")}" /></label>
+                          <label>Blog URL <input name="blog_url" value="${escapeHtml(resource.blog_url || "")}" /></label>
+                          <label>Body <textarea name="body" rows="3">${escapeHtml(resource.body || "")}</textarea></label>
+                          <div class="toolbar">
+                            <button type="submit">Save</button>
+                            <button class="secondary" data-action="admin-cancel-edit-resource" data-id="${resource.id}" type="button">Cancel</button>
+                          </div>
+                        </form>
+                      </div>` : ""}
                       <form class="toolbar" data-form="resource-feedback" data-id="${resource.id}">
                         <select name="usefulness_rating" aria-label="Usefulness">
                           <option value="5">Usefulness 5</option>
@@ -1005,65 +1006,62 @@ function renderResources() {
   `;
 }
 
-function renderDiscussions() {
-  setTitle("Discussions", "Peer learning");
-  content.innerHTML = `
-    <section class="split">
-      <div class="list">
-        ${
-          state.discussions.length
-            ? state.discussions
-                .map(
-                  (thread) => `
-                    <article class="card stack">
-                      <div class="card-header">
-                        <div>
-                          <div class="badge-row">
-                            <span class="badge">${thread.reply_count} replies</span>
-                            ${thread.is_resolved ? `<span class="badge gold">resolved</span>` : `<span class="badge">open</span>`}
-                          </div>
-                          <h2>${escapeHtml(thread.title)}</h2>
-                          <p>${escapeHtml(thread.body)}</p>
-                          <p class="muted">${escapeHtml(thread.author_name || "Student")} ${thread.tags ? `· ${escapeHtml(thread.tags)}` : ""}</p>
-                        </div>
-                        <button class="secondary" data-action="load-thread" data-id="${thread.id}" type="button">Open</button>
-                      </div>
-                      <div class="list" id="thread-${thread.id}">
-                        ${(thread.replies || [])
-                          .map(
-                            (reply) => `
-                              <div class="card compact">
-                                <p>${escapeHtml(reply.body)}</p>
-                                <div class="toolbar">
-                                  <span class="muted">${escapeHtml(reply.author_name || "Student")}</span>
-                                  <button class="secondary" data-action="helpful" data-id="${reply.id}" type="button">Helpful ${reply.helpful_count}</button>
-                                </div>
-                              </div>
-                            `
-                          )
-                          .join("")}
-                      </div>
-                      <form class="toolbar" data-form="reply" data-id="${thread.id}">
-                        <input name="body" placeholder="Reply to this discussion" required />
-                        <button type="submit">Reply</button>
-                      </form>
-                    </article>
-                  `
-                )
-                .join("")
-            : `<div class="empty">No discussions yet.</div>`
-        }
-      </div>
+function renderCourseChat() {
+  setTitle("Chat", "Course discussion rooms");
+  const joined = state.courses.filter((c) => c.is_joined);
+  const activeCourseId = state.activeChatCourse;
 
-      <form class="panel form-stack" data-form="create-discussion">
-        <h2>Start Discussion</h2>
-        <label>Course <select name="course_id">${canManageContent() ? courseOptions() : joinedCourseOptions()}</select></label>
-        <label>Title <input name="title" required /></label>
-        <label>Question or Idea <textarea name="body" rows="5" required></textarea></label>
-        <label>Tags <input name="tags" placeholder="python, debugging, sql" /></label>
-        <button type="submit">Post Discussion</button>
-      </form>
+  content.innerHTML = `
+    <section class="chat-layout">
+      <aside class="chat-sidebar">
+        <h3>My Courses</h3>
+        <div class="chat-course-list">
+          ${joined.length ? joined.map((c) => `
+            <button class="chat-course-btn ${activeCourseId == c.id ? "active" : ""}"
+              data-action="select-chat-course" data-id="${c.id}" type="button">
+              <span class="badge">${escapeHtml(c.code)}</span>
+              <span>${escapeHtml(c.title)}</span>
+            </button>
+          `).join("") : '<div class="muted" style="padding:12px">Join a course to start chatting.</div>'}
+        </div>
+      </aside>
+
+      <div class="chat-main">
+        ${activeCourseId ? renderChatMessages(activeCourseId) : `
+          <div class="chat-empty">
+            <p class="muted">Select a course to view its chat room.</p>
+          </div>
+        `}
+      </div>
     </section>
+  `;
+}
+
+function renderChatMessages(courseId) {
+  const messages = state.chatMessages[courseId] || [];
+  const course = courseById(courseId);
+  return `
+    <div class="chat-header">
+      <h3>${escapeHtml(course ? course.title : "")}</h3>
+      <span class="badge blue">${messages.length} messages</span>
+    </div>
+    <div class="chat-messages" id="chat-messages-${courseId}">
+      ${messages.length ? messages.map((m) => `
+        <div class="chat-message ${m.author_id === state.user.id ? "chat-message-self" : ""}">
+          <div class="chat-message-body">
+            <p>${escapeHtml(m.body)}</p>
+          </div>
+          <div class="chat-message-meta">
+            <span class="muted">${escapeHtml(m.author_name || "Unknown")}</span>
+            <span class="muted">${new Date(m.created_at).toLocaleTimeString()}</span>
+          </div>
+        </div>
+      `).join("") : '<div class="chat-empty"><p class="muted">No messages yet. Start the conversation!</p></div>'}
+    </div>
+    <form class="chat-input" data-form="send-chat" data-id="${courseId}">
+      <input name="body" placeholder="Type a message..." required autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
   `;
 }
 
@@ -1834,11 +1832,14 @@ async function renderResearch() {
   setTitle("Admin", "Management dashboard");
   content.innerHTML = `<div class="empty">Loading admin dashboard...</div>`;
   const [dashboard, users] = await Promise.all([api("/api/research/dashboard"), api("/api/research/users")]);
+  let activityLogs = [];
+  try { activityLogs = await api("/api/research/activity?limit=100"); } catch { activityLogs = []; }
 
   const tabs = [
     ["overview", "Overview"],
     ["users", "Users"],
     ["courses", "Courses"],
+    ["activity", "Activity"],
     ["exports", "Exports"],
   ];
   const activeTab = state.adminTab || "overview";
@@ -1931,21 +1932,58 @@ async function renderResearch() {
                   </div>
                   <h3>${escapeHtml(c.title)}</h3>
                   <p class="muted">${escapeHtml(c.description || "")}</p>
+                  <p class="muted" style="font-size:0.8rem">Facilitator: ${escapeHtml(c.facilitator || "N/A")}</p>
                 </div>
+                <div class="admin-actions">
+                  <button class="secondary" data-action="admin-edit-course" data-id="${c.id}" type="button">Edit</button>
+                  <button class="warn" data-action="admin-delete-course" data-id="${c.id}" type="button">Delete</button>
+                </div>
+              </div>
+              <div id="edit-course-${c.id}" class="hidden" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
+                <form class="form-stack" data-form="update-course" data-id="${c.id}">
+                  <div class="two-col">
+                    <label>Title <input name="title" value="${escapeHtml(c.title)}" /></label>
+                    <label>Code <input name="code" value="${escapeHtml(c.code)}" /></label>
+                  </div>
+                  <label>Facilitator <input name="facilitator" value="${escapeHtml(c.facilitator || "")}" /></label>
+                  <label>Description <textarea name="description" rows="2">${escapeHtml(c.description || "")}</textarea></label>
+                  <div class="toolbar">
+                    <button type="submit">Save</button>
+                    <button class="secondary" data-action="admin-cancel-edit-course" data-id="${c.id}" type="button">Cancel</button>
+                  </div>
+                </form>
               </div>
             </div>
           `).join("") : '<div class="empty">No courses yet.</div>'}
         </div>
-        <form class="panel form-stack" data-form="create-course">
-          <h2>Add Course</h2>
-          <label>Title <input name="title" required /></label>
-          <div class="two-col">
-            <label>Code <input name="code" required /></label>
-            <label>Facilitator <input name="facilitator" /></label>
-          </div>
-          <label>Description <textarea name="description" rows="3"></textarea></label>
-          <button type="submit">Add Course</button>
-        </form>
+        <div class="stack">
+          <form class="panel form-stack" data-form="create-course">
+            <h2>Add Course</h2>
+            <label>Title <input name="title" required /></label>
+            <div class="two-col">
+              <label>Code <input name="code" required /></label>
+              <label>Facilitator <input name="facilitator" /></label>
+            </div>
+            <label>Description <textarea name="description" rows="3"></textarea></label>
+            <button type="submit">Add Course</button>
+          </form>
+
+          <form class="panel form-stack" data-form="create-resource-from-admin">
+            <h2>Add Resource</h2>
+            <label>Course <select name="course_id">${courseOptions()}</select></label>
+            <label>Title <input name="title" required /></label>
+            <div class="two-col">
+              <label>Type <input name="resource_type" value="note" /></label>
+              <label>Difficulty <input name="difficulty" value="beginner" /></label>
+            </div>
+            <label>Estimated Minutes <input name="estimated_minutes" type="number" min="1" value="15" /></label>
+            <label>URL <input name="url" /></label>
+            <label>Video URL <input name="video_url" /></label>
+            <label>Blog URL <input name="blog_url" /></label>
+            <label>Body <textarea name="body" rows="3"></textarea></label>
+            <button type="submit">Add Resource</button>
+          </form>
+        </div>
       </section>`;
   }
 
@@ -1997,10 +2035,51 @@ async function renderResearch() {
       </section>`;
   }
 
+  function renderActivityTab() {
+    return `
+      <section class="split">
+        <div class="stack">
+          <h2>Recent Activity</h2>
+          <div class="admin-table-wrap" style="max-height:500px;overflow-y:auto">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Entity</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${activityLogs.length ? activityLogs.map((log) => `
+                  <tr>
+                    <td class="muted" style="white-space:nowrap">${new Date(log.created_at).toLocaleString()}</td>
+                    <td><strong>${escapeHtml(log.research_id || "N/A")}</strong> ${escapeHtml(log.user_name || "")}</td>
+                    <td><span class="badge">${escapeHtml(log.action)}</span></td>
+                    <td class="muted">${escapeHtml(log.entity_type || "")} ${log.entity_id ? "#" + log.entity_id : ""}</td>
+                  </tr>
+                `).join("") : '<tr><td colspan="4" class="empty">No activity logs yet.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel form-stack">
+          <h2>Broadcast Notification</h2>
+          <p class="muted">Send a system notification to all active users.</p>
+          <label>Message <textarea name="message" rows="4" required></textarea></label>
+          <div class="toolbar">
+            <button data-action="broadcast-notification" type="button">Send Broadcast</button>
+          </div>
+          <div id="broadcast-result" class="hidden" style="margin-top:8px;padding:10px;background:var(--surface-strong);border-radius:6px"></div>
+        </div>
+      </section>`;
+  }
+
   const tabContent = {
     overview: renderOverviewTab(),
     users: renderUsersTab(),
     courses: renderCoursesTab(),
+    activity: renderActivityTab(),
     exports: renderExportsTab(),
   };
 
@@ -2018,6 +2097,41 @@ async function renderResearch() {
   });
 }
 
+async function loadChatMessages(courseId) {
+  if (!courseId) return;
+  try {
+    const messages = await api(`/api/courses/${courseId}/chat`);
+    state.chatMessages[courseId] = messages;
+  } catch (error) {
+    state.chatMessages[courseId] = state.chatMessages[courseId] || [];
+  }
+}
+
+function scrollChatToBottom(courseId) {
+  const el = document.getElementById(`chat-messages-${courseId}`);
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+function startChatPolling(courseId) {
+  if (state.chatPollInterval) clearInterval(state.chatPollInterval);
+  state.chatPollInterval = setInterval(async () => {
+    if (state.activeChatCourse !== courseId) {
+      clearInterval(state.chatPollInterval);
+      return;
+    }
+    await loadChatMessages(courseId);
+    const oldView = state.view;
+    if (oldView === "discussions" && state.activeChatCourse === courseId) {
+      const msgContainer = document.getElementById(`chat-messages-${courseId}`);
+      if (msgContainer) {
+        const wasAtBottom = msgContainer.scrollHeight - msgContainer.scrollTop - msgContainer.clientHeight < 50;
+        renderCourseChat();
+        if (wasAtBottom) scrollChatToBottom(courseId);
+      }
+    }
+  }, 5000);
+}
+
 async function render() {
   renderNav();
   if (state.view === "overview") renderOverview();
@@ -2025,7 +2139,7 @@ async function render() {
   if (state.view === "mycourses") renderMyCourses();
   if (state.view === "resources") renderResources();
   if (state.view === "practicals") renderPracticals();
-  if (state.view === "discussions") renderDiscussions();
+  if (state.view === "discussions") renderCourseChat();
   if (state.view === "quizzes") renderQuizzes();
   if (state.view === "surveys") await renderSurveys();
   if (state.view === "reflections") renderReflections();
@@ -2322,29 +2436,22 @@ content.addEventListener("click", async (event) => {
       showMessage("Resource view recorded.");
     }
 
-    if (action === "load-thread") {
-      const thread = await api(`/api/discussions/${id}`);
-      const idx = state.discussions.findIndex((d) => d.id === thread.id);
-      if (idx >= 0) {
-        state.discussions[idx] = thread;
-      } else {
-        state.discussions.push(thread);
-      }
-      render();
+    if (action === "select-chat-course") {
+      state.activeChatCourse = Number(id);
+      await loadChatMessages(state.activeChatCourse);
+      renderCourseChat();
+      scrollChatToBottom(state.activeChatCourse);
+      startChatPolling(state.activeChatCourse);
     }
 
-    if (action === "helpful") {
-      await api(`/api/replies/${id}/helpful`, { method: "POST" });
-      for (const thread of state.discussions) {
-        for (const reply of (thread.replies || [])) {
-          if (reply.id === Number(id)) {
-            reply.helpful_count += 1;
-            break;
-          }
-        }
-      }
-      render();
-      showMessage("Helpful vote recorded.");
+    if (action === "open-course-chat") {
+      state.view = "discussions";
+      state.activeChatCourse = Number(id);
+      renderNav();
+      await loadChatMessages(state.activeChatCourse);
+      renderCourseChat();
+      scrollChatToBottom(state.activeChatCourse);
+      startChatPolling(state.activeChatCourse);
     }
 
     if (action === "open-quiz") {
@@ -2456,9 +2563,54 @@ content.addEventListener("click", async (event) => {
       await renderResearch();
     }
 
+    if (action === "broadcast-notification") {
+      const message = document.querySelector("#content textarea[name='message']")?.value;
+      if (!message || !message.trim()) { showMessage("Enter a message.", "error"); return; }
+      await api("/api/admin/notifications/broadcast", {
+        method: "POST",
+        body: JSON.stringify({ message: message.trim(), kind: "system" }),
+      });
+      document.querySelector("#content textarea[name='message']").value = "";
+      const resultEl = document.querySelector("#broadcast-result");
+      if (resultEl) { resultEl.textContent = "Notification sent to all active users."; resultEl.classList.remove("hidden"); }
+      showMessage("Broadcast sent.");
+    }
+
     if (action === "admin-reset-pw") {
       const result = await api(`/api/admin/users/${id}/generate-reset-token`, { method: "POST" });
       showMessage(`Reset code: ${result.code} (expires in ${result.expires_in_hours}h)`, "success");
+    }
+
+    if (action === "admin-edit-course") {
+      document.getElementById(`edit-course-${id}`)?.classList.toggle("hidden");
+    }
+
+    if (action === "admin-cancel-edit-course") {
+      document.getElementById(`edit-course-${id}`)?.classList.add("hidden");
+    }
+
+    if (action === "admin-delete-course") {
+      if (!confirm(`Delete course #${id} and all its data? This cannot be undone.`)) return;
+      await api(`/api/courses/${id}`, { method: "DELETE" });
+      state.courses = await api("/api/courses");
+      await renderResearch();
+      showMessage("Course deleted.");
+    }
+
+    if (action === "admin-edit-resource") {
+      document.getElementById(`edit-resource-${id}`)?.classList.toggle("hidden");
+    }
+
+    if (action === "admin-cancel-edit-resource") {
+      document.getElementById(`edit-resource-${id}`)?.classList.add("hidden");
+    }
+
+    if (action === "admin-delete-resource") {
+      if (!confirm(`Delete resource #${id}? This cannot be undone.`)) return;
+      await api(`/api/resources/${id}`, { method: "DELETE" });
+      state.resources = await api("/api/resources");
+      await renderResearch();
+      showMessage("Resource deleted.");
     }
 
     if (action === "practical-run") {
@@ -2544,14 +2696,17 @@ content.addEventListener("submit", async (event) => {
       showMessage("Resource added.");
     }
 
-    if (type === "create-discussion") {
+    if (type === "send-chat") {
+      const courseId = Number(form.dataset.id);
       const payload = formData(form);
-      payload.course_id = Number(payload.course_id);
-      await api("/api/discussions", { method: "POST", body: JSON.stringify(payload) });
+      await api(`/api/courses/${courseId}/chat`, { method: "POST", body: JSON.stringify(payload) });
       form.reset();
-      await refreshDiscussions();
-      render();
-      showMessage("Discussion posted.");
+      await loadChatMessages(courseId);
+      if (state.activeChatCourse === courseId && state.view === "discussions") {
+        renderCourseChat();
+        scrollChatToBottom(courseId);
+      }
+      showMessage("Message sent.");
     }
 
     if (type === "practical-submit") {
@@ -2564,17 +2719,6 @@ content.addEventListener("submit", async (event) => {
       refreshPerformance();
       renderPracticalResult(result);
       showMessage(`Practical submitted. Score: ${result.percentage}%.`);
-    }
-
-    if (type === "reply") {
-      await api(`/api/discussions/${form.dataset.id}/replies`, {
-        method: "POST",
-        body: JSON.stringify(formData(form)),
-      });
-      form.reset();
-      await refreshDiscussions();
-      render();
-      showMessage("Reply posted.");
     }
 
     if (type === "reflection") {
@@ -2605,6 +2749,15 @@ content.addEventListener("submit", async (event) => {
       showMessage("Academic record saved.");
     }
 
+    if (type === "update-course") {
+      const payload = formData(form);
+      await api(`/api/courses/${form.dataset.id}`, { method: "PUT", body: JSON.stringify(payload) });
+      document.getElementById(`edit-course-${form.dataset.id}`)?.classList.add("hidden");
+      state.courses = await api("/api/courses");
+      await renderResearch();
+      showMessage("Course updated.");
+    }
+
     if (type === "create-course") {
       const payload = formData(form);
       await api("/api/courses", { method: "POST", body: JSON.stringify(payload) });
@@ -2612,6 +2765,27 @@ content.addEventListener("submit", async (event) => {
       state.courses = await api("/api/courses");
       render();
       showMessage("Course created.");
+    }
+
+    if (type === "create-resource-from-admin") {
+      const payload = formData(form);
+      payload.course_id = Number(payload.course_id);
+      payload.estimated_minutes = Number(payload.estimated_minutes || 15);
+      await api("/api/resources", { method: "POST", body: JSON.stringify(payload) });
+      form.reset();
+      state.resources = await api("/api/resources");
+      await renderResearch();
+      showMessage("Resource added.");
+    }
+
+    if (type === "update-resource") {
+      const payload = formData(form);
+      if (payload.estimated_minutes) payload.estimated_minutes = Number(payload.estimated_minutes);
+      await api(`/api/resources/${form.dataset.id}`, { method: "PUT", body: JSON.stringify(payload) });
+      document.getElementById(`edit-resource-${form.dataset.id}`)?.classList.add("hidden");
+      state.resources = await api("/api/resources");
+      await renderResearch();
+      showMessage("Resource updated.");
     }
 
     if (type === "survey-submit") {

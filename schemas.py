@@ -97,6 +97,24 @@ class CourseCreate(BaseModel):
     facilitator: str | None = None
 
 
+class CourseUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=3, max_length=160)
+    code: str | None = Field(default=None, min_length=2, max_length=40)
+    description: str | None = None
+    facilitator: str | None = None
+
+
+class ResourceUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=3, max_length=180)
+    resource_type: str | None = None
+    difficulty: str | None = None
+    estimated_minutes: int | None = Field(default=None, ge=1, le=300)
+    url: str | None = None
+    video_url: str | None = None
+    blog_url: str | None = None
+    body: str | None = None
+
+
 class CourseOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

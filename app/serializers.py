@@ -1,6 +1,7 @@
 import json
 
 from model import (
+    ChatMessage,
     Course,
     DiscussionReply,
     DiscussionThread,
@@ -86,6 +87,17 @@ def serialize_reply(reply: DiscussionReply) -> dict:
         "body": reply.body,
         "helpful_count": reply.helpful_count,
         "created_at": reply.created_at,
+    }
+
+
+def serialize_chat_message(msg: ChatMessage) -> dict:
+    return {
+        "id": msg.id,
+        "course_id": msg.course_id,
+        "author_id": msg.author_id,
+        "author_name": msg.author.full_name if msg.author else None,
+        "body": msg.body,
+        "created_at": msg.created_at,
     }
 
 
