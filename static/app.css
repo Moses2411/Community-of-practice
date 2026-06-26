@@ -1580,6 +1580,72 @@ button.warn { background: var(--accent); }
   text-align: right;
   margin-top: -14px;
   padding-right: 4px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.whatsapp-msg-actions {
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.whatsapp-msg-self:hover .whatsapp-msg-actions {
+  opacity: 1;
+}
+
+.msg-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #667781;
+  border-radius: 4px;
+  min-height: auto;
+  line-height: 1;
+}
+
+.msg-action-btn:hover {
+  background: rgba(0,0,0,0.08);
+  color: #333;
+}
+
+.chat-edit-form {
+  margin: 4px 0;
+}
+
+.chat-edit-form textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.chat-edit-form textarea:focus {
+  border-color: var(--primary);
+}
+
+.chat-edit-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.chat-edit-actions button {
+  font-size: 0.8rem;
+  min-height: 30px;
+  padding: 0 10px;
 }
 
 .chat-input {
@@ -1839,6 +1905,21 @@ button.warn { background: var(--accent); }
   .chat-attachment-file {
     padding: 6px 8px;
     font-size: 0.8rem;
+  }
+  .whatsapp-msg-actions {
+    opacity: 1;
+  }
+  .msg-action-btn {
+    padding: 4px;
+  }
+  .chat-edit-form textarea {
+    font-size: 0.85rem;
+    padding: 5px 6px;
+  }
+  .chat-edit-actions button {
+    font-size: 0.78rem;
+    min-height: 28px;
+    padding: 0 8px;
   }
 }
 

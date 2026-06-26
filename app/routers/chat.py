@@ -10,7 +10,7 @@ from app.dependencies import CurrentUser, SessionDep, require_course_membership
 from app.serializers import serialize_chat_message
 from app.utils import log_activity
 from model import ChatMessage, Course, User
-from schemas import ChatMessageCreate
+from schemas import ChatMessageCreate, ChatMessageUpdate
 
 router = APIRouter()
 
@@ -97,3 +97,41 @@ def send_chat_message(
     db.refresh(msg)
     msg = db.scalar(select(ChatMessage).options(selectinload(ChatMessage.author)).where(ChatMessage.id == msg.id))
     return serialize_chat_message(msg)
+
+
+@router.put("/api/courses/{course_id}/chat/{message_id}")
+def edit_chat_message(
+    course_id: int,
+    message_id: int,
+    payload: ChatMessageUpdate,
+    db: SessionDep,
+    current_user: CurrentUser,
+):
+    msg = db.get(ChatMessage, message_id)
+    if msg is None or msg.course_id != course_id:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    if msg.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own messages.")
+    msg.body = payload.body.strip()
+    log_activity(db, current_user, "chat_message_edited", "chat_message", message_id, {"course_id": course_id})
+    db.commit()
+    db.refresh(msg)
+    return serialize_chat_message(msg)
+
+
+@router.delete("/api/courses/{course_id}/chat/{message_id}")
+def delete_chat_message(
+    course_id: int,
+    message_id: int,
+    db: SessionDep,
+    current_user: CurrentUser,
+):
+    msg = db.get(ChatMessage, message_id)
+    if msg is None or msg.course_id != course_id:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    if msg.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own messages.")
+    log_activity(db, current_user, "chat_message_deleted", "chat_message", message_id, {"course_id": course_id})
+    db.delete(msg)
+    db.commit()
+    return {"message": "Message deleted."}

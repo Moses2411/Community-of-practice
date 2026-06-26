@@ -27,6 +27,7 @@ const state = {
   activeChatCourse: null,
   chatPollInterval: null,
   practicalIndex: 0,
+  editingMessageId: null,
 };
 
 const authScreen = document.querySelector("#auth-screen");
@@ -1069,12 +1070,12 @@ function renderChatMessages(courseId) {
         <div class="chat-header-avatar">${course ? escapeHtml(course.code[0]) : "?"}</div>
         <div>
           <h3>${escapeHtml(course ? course.title : "")}</h3>
-          <span class="chat-header-status">${messages.length ? messages.length + " message" + (messages.length !== 1 ? "s" : "") : "No messages"}</span>
+          <span class="chat-header-status">${course ? (course.member_count || 0) + " member" + (course.member_count !== 1 ? "s" : "") : "0 members"}</span>
         </div>
       </div>
     </div>
     <div class="chat-messages" id="chat-messages-${courseId}">
-      ${renderMessageListHTML(messages)}
+      ${renderMessageListHTML(messages, courseId)}
     </div>
     <form class="chat-input" data-form="send-chat" data-id="${courseId}">
       <div class="chat-input-row">
@@ -2212,15 +2213,37 @@ function renderAttachmentHTML(m) {
   </a>`;
 }
 
-function renderMessageListHTML(messages) {
+function renderMessageListHTML(messages, courseId) {
   if (!messages || !messages.length) return '<div class="chat-empty"><p class="muted">No messages yet. Say hello!</p></div>';
   return messages.map((m) => `
-    <div class="whatsapp-msg ${m.author_id === state.user.id ? "whatsapp-msg-self" : "whatsapp-msg-other"}">
+    <div class="whatsapp-msg ${m.author_id === state.user.id ? "whatsapp-msg-self" : "whatsapp-msg-other"}" id="whatsapp-msg-${m.id}">
       ${m.author_id !== state.user.id ? `<div class="whatsapp-msg-author">${escapeHtml(m.author_name || "Unknown")}</div>` : ""}
       <div class="whatsapp-msg-bubble">
-        <div class="whatsapp-msg-text">${escapeHtml(m.body)}</div>
+        ${state.editingMessageId === m.id ? `
+          <form class="chat-edit-form" data-form="save-edit" data-id="${m.id}" data-course="${courseId}">
+            <textarea name="body" rows="2">${escapeHtml(m.body)}</textarea>
+            <div class="chat-edit-actions">
+              <button type="submit">Save</button>
+              <button class="secondary" type="button" data-action="cancel-edit">Cancel</button>
+            </div>
+          </form>
+        ` : `
+          <div class="whatsapp-msg-text">${escapeHtml(m.body)}</div>
+        `}
         ${m.attachment_url ? renderAttachmentHTML(m) : ""}
-        <div class="whatsapp-msg-time">${new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+        <div class="whatsapp-msg-time">
+          ${new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          ${m.author_id === state.user.id && !state.editingMessageId ? `
+            <span class="whatsapp-msg-actions">
+              <button class="msg-action-btn" data-action="edit-message" data-id="${m.id}" data-course="${courseId}" title="Edit" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="msg-action-btn" data-action="delete-message" data-id="${m.id}" data-course="${courseId}" title="Delete" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </span>
+          ` : ""}
+        </div>
       </div>
     </div>
   `).join("");
@@ -2259,7 +2282,7 @@ function startChatPolling(courseId) {
       const msgContainer = document.getElementById(`chat-messages-${courseId}`);
       if (msgContainer) {
         const wasAtBottom = msgContainer.scrollHeight - msgContainer.scrollTop - msgContainer.clientHeight < 50;
-        msgContainer.innerHTML = renderMessageListHTML(state.chatMessages[courseId]);
+        msgContainer.innerHTML = renderMessageListHTML(state.chatMessages[courseId], courseId);
         if (wasAtBottom) scrollChatToBottom(courseId);
       }
     }
@@ -2596,6 +2619,28 @@ content.addEventListener("click", async (event) => {
       startChatPolling(state.activeChatCourse);
     }
 
+    if (action === "edit-message") {
+      state.editingMessageId = Number(id);
+      state.activeChatCourse = Number(target.dataset.course);
+      renderCourseChat();
+    }
+
+    if (action === "cancel-edit") {
+      state.editingMessageId = null;
+      renderCourseChat();
+    }
+
+    if (action === "delete-message") {
+      if (!confirm("Delete this message?")) return;
+      const courseId = Number(target.dataset.course);
+      await api(`/api/courses/${courseId}/chat/${id}`, { method: "DELETE" });
+      await loadChatMessages(courseId);
+      if (state.activeChatCourse === courseId && state.view === "discussions") {
+        renderCourseChat();
+      }
+      showMessage("Message deleted.");
+    }
+
     if (action === "open-quiz") {
       const test = await api(`/api/quizzes/${id}`);
       state.view = "quizzes";
@@ -2913,6 +2958,21 @@ content.addEventListener("submit", async (event) => {
         if (state.activeChatCourse === courseId && state.view === "discussions") renderCourseChat();
         showMessage(error.message || "Failed to send message.", "error");
       }
+    }
+
+    if (type === "save-edit") {
+      const messageId = Number(form.dataset.id);
+      const courseId = Number(form.dataset.course);
+      const body = form.body?.value?.trim();
+      if (!body) { showMessage("Message cannot be empty.", "error"); return; }
+      await api(`/api/courses/${courseId}/chat/${messageId}`, { method: "PUT", body: JSON.stringify({ body }) });
+      state.editingMessageId = null;
+      await loadChatMessages(courseId);
+      if (state.activeChatCourse === courseId && state.view === "discussions") {
+        renderCourseChat();
+        scrollChatToBottom(courseId);
+      }
+      showMessage("Message updated.");
     }
 
     if (type === "practical-submit") {
