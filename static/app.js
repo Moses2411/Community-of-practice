@@ -1031,7 +1031,7 @@ function renderCourseChat() {
   const activeCourseId = state.activeChatCourse;
 
   content.innerHTML = `
-    <section class="chat-layout">
+    <section class="chat-layout${activeCourseId ? " showing-chat" : " showing-list"}">
       <aside class="chat-sidebar">
         <h3>My Courses</h3>
         <div class="chat-course-list">
@@ -1067,6 +1067,9 @@ function renderChatMessages(courseId) {
   return `
     <div class="chat-header">
       <div class="chat-header-info">
+        <button class="chat-back-btn" data-action="back-to-course-list" type="button" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
         <div class="chat-header-avatar">${course ? escapeHtml(course.code[0]) : "?"}</div>
         <div>
           <h3>${escapeHtml(course ? course.title : "")}</h3>
@@ -2617,6 +2620,13 @@ content.addEventListener("click", async (event) => {
       renderCourseChat();
       scrollChatToBottom(state.activeChatCourse);
       startChatPolling(state.activeChatCourse);
+    }
+
+    if (action === "back-to-course-list") {
+      state.activeChatCourse = null;
+      if (state.chatPollInterval) clearInterval(state.chatPollInterval);
+      state.chatPollInterval = null;
+      renderCourseChat();
     }
 
     if (action === "edit-message") {
