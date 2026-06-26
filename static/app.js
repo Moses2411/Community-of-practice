@@ -2465,8 +2465,16 @@ sidebarToggle?.addEventListener("click", () => {
   applySidebarState();
 });
 
-mobileMenuBtn?.addEventListener("click", () => {
+mobileMenuBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
   state.mobileMenuOpen = !state.mobileMenuOpen;
+  applySidebarState();
+});
+
+appScreen.addEventListener("click", (e) => {
+  if (!state.mobileMenuOpen) return;
+  if (e.target.closest(".sidebar") || e.target.closest("#mobile-menu-btn")) return;
+  state.mobileMenuOpen = false;
   applySidebarState();
 });
 
