@@ -1760,6 +1760,88 @@ button.warn { background: var(--accent); }
   }
 }
 
+@media (max-width: 480px) {
+  .chat-layout {
+    border-radius: 8px;
+  }
+  .chat-sidebar {
+    max-height: 140px;
+    padding: 8px;
+  }
+  .chat-course-btn {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+  .chat-course-code {
+    font-size: 0.78rem;
+  }
+  .chat-header {
+    padding: 10px 12px;
+  }
+  .chat-header-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+  .chat-header h3 {
+    font-size: 0.92rem;
+  }
+  .chat-messages {
+    padding: 8px 10px;
+    max-height: 45vh;
+  }
+  .whatsapp-msg {
+    max-width: 95%;
+  }
+  .whatsapp-msg-bubble {
+    padding: 5px 8px;
+  }
+  .whatsapp-msg-text {
+    font-size: 0.85rem;
+    padding-right: 40px;
+  }
+  .whatsapp-msg-time {
+    font-size: 0.62rem;
+    margin-top: -12px;
+  }
+  .chat-input {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .chat-input-row {
+    gap: 4px;
+  }
+  .chat-input-row input {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+  .chat-file-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .chat-file-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .chat-input-row button {
+    font-size: 0.82rem;
+    padding: 0 10px;
+    min-height: 32px;
+  }
+  .chat-file-preview {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+  }
+  .chat-attachment-image {
+    max-width: 140px;
+    max-height: 120px;
+  }
+  .chat-attachment-file {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+}
+
 /* ====== DAILY CHALLENGES ====== */
 .daily-challenges {
   border: 1px solid var(--primary);
