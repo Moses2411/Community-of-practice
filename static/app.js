@@ -523,10 +523,14 @@ function advanceToNextQuestion() {
 async function submitQuizAnswers() {
   const test = state.activeQuiz;
   const seconds_spent = Math.round((Date.now() - state.quizStartedAt) / 1000);
-  const answers = state.quizQuestions.map((q) => ({
-    question_id: q.id,
-    selected_option: state.quizAnswers[q.id] || null,
-  }));
+  const answers = state.quizQuestions.map((q) => {
+    const isTheory = q.question_type === "theory";
+    return {
+      question_id: q.id,
+      selected_option: isTheory ? null : (state.quizAnswers[q.id] || null),
+      answer_text: isTheory ? (state.quizAnswers[q.id] || "") : null,
+    };
+  });
   try {
     const result = await api(`/api/quizzes/${test.id}/submit`, {
       method: "POST",
@@ -668,9 +672,6 @@ function renderDailyChallenges(codingExercises, databaseExercises, releaseLabel)
             `).join("")}
           </div>
         </div>
-      </div>
-      <div class="daily-challenges-footer">
-        <button data-action="open-practicals" type="button" class="secondary">View All Practicals</button>
       </div>
     </section>
   `;
@@ -1615,16 +1616,19 @@ function renderQuizActive() {
       </div>
       <h2>${escapeHtml(question.prompt)}</h2>
       <div class="quiz-options" data-question-id="${question.id}">
-        ${["a", "b", "c", "d"]
-          .map(
-            (opt) => `
-              <label class="quiz-option">
-                <input type="radio" name="quiz-answer" value="${opt}" />
-                <span>${opt.toUpperCase()}. ${escapeHtml(question[`option_${opt}`])}</span>
-              </label>
-            `
-          )
-          .join("")}
+        ${question.question_type === "theory"
+          ? `<textarea class="full-input" rows="5" placeholder="Type your answer here..."></textarea>
+             <button class="secondary" data-action="submit-theory-answer" type="button">Next</button>`
+          : `${["a", "b", "c", "d"]
+              .map(
+                (opt) => `
+                  <label class="quiz-option">
+                    <input type="radio" name="quiz-answer" value="${opt}" />
+                    <span>${opt.toUpperCase()}. ${escapeHtml(question[`option_${opt}`])}</span>
+                  </label>
+                `
+              )
+              .join("")}`}
       </div>
     </section>
   `;
@@ -1670,21 +1674,22 @@ function renderQuizResults() {
       <article class="panel stack">
         <h2>Question Details</h2>
         <div class="list">
-          ${(r.answers || [])
+              ${(r.answers || [])
             .map(
               (answer, idx) => `
-                <div class="card compact ${answer.is_correct ? "correct" : "wrong"}">
+                <div class="card compact ${answer.question_type === "theory" ? "" : (answer.is_correct ? "correct" : "wrong")}">
                   <div class="badge-row">
-                    <span class="badge ${answer.is_correct ? "blue" : "gold"}">
-                      ${answer.is_correct ? "Correct" : "Wrong"}
+                    <span class="badge blue">
+                      ${answer.question_type === "theory" ? "Theory" : (answer.is_correct ? "Correct" : "Wrong")}
                     </span>
                     <span class="badge">${escapeHtml(answer.points_awarded)} / ${escapeHtml(answer.points)} pts</span>
                   </div>
                   <p><strong>${idx + 1}. ${escapeHtml(answer.prompt)}</strong></p>
-                  <p class="muted">
-                    Your answer: <strong>${answer.selected_option ? answer.selected_option.toUpperCase() + ". " + escapeHtml(answer.options?.[answer.selected_option] || "") : "No answer (timeout)"}</strong>
-                  </p>
-                  ${!answer.is_correct ? `<p class="muted">Correct answer: <strong>${answer.correct_option.toUpperCase()}. ${escapeHtml(answer.options?.[answer.correct_option] || "")}</strong></p>` : ""}
+                  ${answer.question_type === "theory"
+                    ? `<p class="muted">Your answer: <strong>${escapeHtml(answer.answer_text || "No answer")}</strong></p>`
+                    : `<p class="muted">Your answer: <strong>${answer.selected_option ? answer.selected_option.toUpperCase() + ". " + escapeHtml(answer.options?.[answer.selected_option] || "") : "No answer (timeout)"}</strong></p>`
+                  }
+                  ${answer.question_type !== "theory" && !answer.is_correct ? `<p class="muted">Correct answer: <strong>${answer.correct_option.toUpperCase()}. ${escapeHtml(answer.options?.[answer.correct_option] || "")}</strong></p>` : ""}
                   ${answer.explanation ? `<p class="muted">${escapeHtml(answer.explanation)}</p>` : ""}
                 </div>
               `
@@ -2525,6 +2530,12 @@ content.addEventListener("change", async (event) => {
     setTimeout(() => advanceToNextQuestion(), 400);
   }
 
+  if (event.target.tagName === "TEXTAREA" && event.target.closest(".quiz-options") && state.quizPhase === "active") {
+    const options = event.target.closest(".quiz-options");
+    const questionId = Number(options.dataset.questionId);
+    state.quizAnswers[questionId] = event.target.value;
+  }
+
   const adminSelect = event.target.closest("[data-action]");
   if (adminSelect) {
     const action = adminSelect.dataset.action;
@@ -2704,6 +2715,13 @@ content.addEventListener("click", async (event) => {
       state.practicalIndex = 0;
       clearPracticalTimers();
       renderPracticals();
+    }
+
+    if (action === "submit-theory-answer") {
+      if (state.quizPhase === "active") {
+        clearQuizTimer();
+        advanceToNextQuestion();
+      }
     }
 
     if (action === "back-to-quizzes") {

@@ -234,11 +234,12 @@ class QuizQuestion(Base):
     id = Column(Integer, primary_key=True, index=True)
     quiz_id = Column(Integer, ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
     prompt = Column(Text, nullable=False)
+    question_type = Column(String(10), default="mcq", nullable=False)  # "mcq" or "theory"
     option_a = Column(String(300), nullable=False)
     option_b = Column(String(300), nullable=False)
     option_c = Column(String(300), nullable=False)
     option_d = Column(String(300), nullable=False)
-    correct_option = Column(String(1), nullable=False)
+    correct_option = Column(String(1), nullable=True)
     explanation = Column(Text, nullable=True)
     points = Column(Integer, default=1)
 
@@ -270,6 +271,7 @@ class QuizAnswer(Base):
     attempt_id = Column(Integer, ForeignKey("quiz_attempts.id", ondelete="CASCADE"), nullable=False)
     question_id = Column(Integer, ForeignKey("quiz_questions.id", ondelete="CASCADE"), nullable=False)
     selected_option = Column(String(1), nullable=True)
+    answer_text = Column(Text, nullable=True)
     is_correct = Column(Boolean, default=False)
     points_awarded = Column(Float, default=0)
     answered_at = Column(DateTime, default=utcnow)

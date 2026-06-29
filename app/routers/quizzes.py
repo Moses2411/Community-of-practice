@@ -64,17 +64,32 @@ def create_quiz_question(quiz_id: int, payload: QuizQuestionCreate, db: SessionD
     quiz = db.get(Quiz, quiz_id)
     if quiz is None:
         raise HTTPException(status_code=404, detail="Quiz not found.")
-    question = QuizQuestion(
-        quiz_id=quiz_id,
-        prompt=payload.prompt,
-        option_a=payload.option_a,
-        option_b=payload.option_b,
-        option_c=payload.option_c,
-        option_d=payload.option_d,
-        correct_option=payload.correct_option,
-        explanation=payload.explanation,
-        points=payload.points,
-    )
+    if payload.question_type == "theory":
+        question = QuizQuestion(
+            quiz_id=quiz_id,
+            prompt=payload.prompt,
+            question_type="theory",
+            option_a="",
+            option_b="",
+            option_c="",
+            option_d="",
+            correct_option=None,
+            explanation=payload.explanation,
+            points=payload.points,
+        )
+    else:
+        question = QuizQuestion(
+            quiz_id=quiz_id,
+            prompt=payload.prompt,
+            question_type="mcq",
+            option_a=payload.option_a,
+            option_b=payload.option_b,
+            option_c=payload.option_c,
+            option_d=payload.option_d,
+            correct_option=payload.correct_option,
+            explanation=payload.explanation,
+            points=payload.points,
+        )
     db.add(question)
     db.flush()
     log_activity(db, current_user, "quiz_question_created", "quiz_question", question.id, {"quiz_id": quiz_id})
@@ -114,7 +129,8 @@ def submit_quiz(quiz_id: int, payload: QuizSubmit, db: SessionDep, current_user:
     if not round_questions:
         raise HTTPException(status_code=400, detail="No valid answers submitted.")
 
-    answer_map = {answer.question_id: answer.selected_option for answer in payload.answers}
+    option_map = {a.question_id: a.selected_option for a in payload.answers}
+    text_map = {a.question_id: a.answer_text for a in payload.answers if a.answer_text}
     total_points = float(sum(question.points for question in round_questions))
     score = 0.0
 
@@ -130,19 +146,31 @@ def submit_quiz(quiz_id: int, payload: QuizSubmit, db: SessionDep, current_user:
     db.flush()
 
     for question in round_questions:
-        selected = answer_map.get(question.id)
-        is_correct = selected == question.correct_option
-        points_awarded = float(question.points if is_correct else 0)
-        score += points_awarded
-        db.add(
-            QuizAnswer(
-                attempt_id=attempt.id,
-                question_id=question.id,
-                selected_option=selected,
-                is_correct=is_correct,
-                points_awarded=points_awarded,
+        if question.question_type == "theory":
+            answer_text = text_map.get(question.id, "")
+            db.add(
+                QuizAnswer(
+                    attempt_id=attempt.id,
+                    question_id=question.id,
+                    answer_text=answer_text,
+                    is_correct=False,
+                    points_awarded=0,
+                )
             )
-        )
+        else:
+            selected = option_map.get(question.id)
+            is_correct = selected == question.correct_option
+            points_awarded = float(question.points if is_correct else 0)
+            score += points_awarded
+            db.add(
+                QuizAnswer(
+                    attempt_id=attempt.id,
+                    question_id=question.id,
+                    selected_option=selected,
+                    is_correct=is_correct,
+                    points_awarded=points_awarded,
+                )
+            )
 
     attempt.score = score
     log_activity(

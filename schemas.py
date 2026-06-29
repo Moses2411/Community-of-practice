@@ -235,11 +235,12 @@ class QuizCreate(BaseModel):
 
 class QuizQuestionCreate(BaseModel):
     prompt: str = Field(min_length=3)
-    option_a: str
-    option_b: str
-    option_c: str
-    option_d: str
-    correct_option: Literal["a", "b", "c", "d"]
+    question_type: Literal["mcq", "theory"] = "mcq"
+    option_a: str = ""
+    option_b: str = ""
+    option_c: str = ""
+    option_d: str = ""
+    correct_option: Literal["a", "b", "c", "d"] | None = None
     explanation: str | None = None
     points: int = Field(default=1, ge=1, le=20)
 
@@ -249,6 +250,7 @@ class QuizQuestionOut(BaseModel):
 
     id: int
     prompt: str
+    question_type: str = "mcq"
     option_a: str
     option_b: str
     option_c: str
@@ -274,6 +276,7 @@ class QuizOut(BaseModel):
 class QuizAnswerSubmit(BaseModel):
     question_id: int
     selected_option: Literal["a", "b", "c", "d"] | None = None
+    answer_text: str | None = None
 
 
 class QuizSubmit(BaseModel):

@@ -185,7 +185,6 @@ def build_daily_practical_specs(course: Course, release: PracticalRelease) -> li
         _sql_count_distinct, _sql_union_results, _sql_exists_check,
         _sql_date_group, _sql_alter_add,
     ]
-
     py_seed = _stable_int(course.code, release.key, "python")
     java_seed = _stable_int(course.code, release.key, "java")
     db_seed = _stable_int(course.code, release.key, "database")
@@ -224,6 +223,7 @@ def _python_count_scores(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Uses the score threshold", "contains_any": [f">= {threshold}", f">={threshold}"]},
             {"label": "Returns a result", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([42, {threshold}, {threshold + 8}]))", "expected_output": "2"},
         ],
     )
 
@@ -247,6 +247,7 @@ def _python_average_minutes(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Handles empty lists", "contains_all": ["0"]},
             {"label": "Calculates an average", "contains_all": ["sum", "len"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([{sample}, {sample + 5}, {sample + 10}]))", "expected_output": str(sample + 5)},
         ],
     )
 
@@ -269,6 +270,7 @@ def _python_format_course(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Uppercases the code", "contains_all": [".upper("]},
             {"label": "Returns a label", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}('{course.code.lower()}', '{course.title}'))", "expected_output": f"'{course.code} - {course.title}'"},
         ],
     )
 
@@ -291,6 +293,7 @@ def _python_topic_counts(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Uses a dictionary", "contains_any": ["{}", "dict("]},
             {"label": "Loops and returns counts", "contains_all": ["for ", "return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}(['SQL', 'SQL', 'Python']))", "expected_output": str({'SQL': 2, 'Python': 1}).replace(' ', '')},
         ],
     )
 
@@ -313,6 +316,7 @@ def _python_linear_search(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Searches with a loop", "contains_any": ["for ", "while "]},
             {"label": "Handles missing values", "contains_all": ["-1"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}(['Amina', 'Bala', 'Chidi'], 'Bala'))", "expected_output": "1"},
         ],
     )
 
@@ -336,6 +340,7 @@ def _python_top_scores(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Sorts descending", "contains_any": ["sorted", ".sort("]},
             {"label": "Returns the selected scores", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([55, 90, 72, 88]))", "expected_output": str(sorted([90, 88, 72, 55], reverse=True)[:limit]).replace(' ', '')},
         ],
     )
 
@@ -359,6 +364,7 @@ def _python_palindrome(course: Course, seed: int) -> dict:
             {"label": "Ignores case", "contains_all": [".lower("]},
             {"label": "Compares reversed string", "contains_any": ["[::-1]", "reversed("]},
             {"label": "Returns a result", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}('Racecar'))", "expected_output": "True"},
         ],
     )
 
@@ -381,6 +387,7 @@ def _python_reverse_string(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Uses a loop", "contains_any": ["for ", "while "]},
             {"label": "Returns a result", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}('hello'))", "expected_output": "olleh"},
         ],
     )
 
@@ -405,6 +412,7 @@ def _python_two_sum(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Uses a dictionary", "contains_any": ["{}", "dict("]},
             {"label": "Returns indices", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([2, 7, 11], {target}))", "expected_output": str([0, 1])},
         ],
     )
 
@@ -428,6 +436,7 @@ def _python_fizzbuzz(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Uses modulo operator", "contains_all": ["%"]},
             {"label": "Returns a list", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}(5))", "expected_output": str([1, 2, 'Fizz', 4, 'Buzz']).replace(' ', '')},
         ],
     )
 
@@ -451,6 +460,7 @@ def _python_count_vowels(course: Course, seed: int) -> dict:
             {"label": "Ignores case", "contains_all": [".lower("]},
             {"label": "Counts vowels", "contains_any": ["'a'", "'e'", "'i'", "'o'", "'u'", "aeiou"]},
             {"label": "Returns a count", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}('OpenED'))", "expected_output": "3"},
         ],
     )
 
@@ -473,6 +483,7 @@ def _python_even_numbers(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Checks even numbers", "contains_all": ["%"]},
             {"label": "Returns a list", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([1, 2, 3, 4, 5]))", "expected_output": str([2, 4])},
         ],
     )
 
@@ -495,6 +506,7 @@ def _python_second_largest(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Handles small lists", "contains_all": ["None"]},
             {"label": "Returns a value", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([10, 20, 30]))", "expected_output": "20"},
         ],
     )
 
@@ -517,6 +529,7 @@ def _python_factorial(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Uses a loop", "contains_any": ["for ", "while "]},
             {"label": "Returns the result", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}(5))", "expected_output": "120"},
         ],
     )
 
@@ -539,6 +552,7 @@ def _python_unique_elements(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Uses a set for tracking", "contains_all": ["set("]},
             {"label": "Returns the result", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([3, 1, 2, 1, 3]))", "expected_output": str([3, 1, 2]).replace(' ', '')},
         ],
     )
 
@@ -561,6 +575,7 @@ def _python_positive_count(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Compares to zero", "contains_all": ["> 0"]},
             {"label": "Returns a count", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([-5, 0, 3, 8, -1]))", "expected_output": "2"},
         ],
     )
 
@@ -584,6 +599,7 @@ def _python_anagram_check(course: Course, seed: int) -> dict:
             {"label": "Ignores case", "contains_all": [".lower("]},
             {"label": "Compares sorted or counted", "contains_any": ["sorted(", "Counter"]},
             {"label": "Returns a result", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}('Listen', 'Silent'))", "expected_output": "True"},
         ],
     )
 
@@ -606,6 +622,7 @@ def _python_max_in_list(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Handles empty list", "contains_all": ["None"]},
             {"label": "Returns a value", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([3, 7, 2, 9]))", "expected_output": "9"},
         ],
     )
 
@@ -628,6 +645,7 @@ def _python_merge_sorted(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Merges without built-in sort", "contains_all": ["return"]},
             {"label": "Handles both lists", "contains_any": ["while ", "for "]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}([1, 3, 5], [2, 4, 6]))", "expected_output": str([1, 2, 3, 4, 5, 6]).replace(' ', '')},
         ],
     )
 
@@ -650,6 +668,7 @@ def _python_count_words(course: Course, seed: int) -> dict:
             {"label": "Defines the required function", "contains_all": [f"def {fn}"]},
             {"label": "Splits the sentence", "contains_all": [".split("]},
             {"label": "Returns a count", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "python", "test_code": f"print({fn}('Hello world'))", "expected_output": "2"},
         ],
     )
 
@@ -680,6 +699,7 @@ def _java_count_scores(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "static", "int[]"]},
             {"label": "Uses the score threshold", "contains_any": [f">= {threshold}", f">={threshold}"]},
             {"label": "Returns a value", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        int[] s = {{{40}, {threshold}, {threshold + 12}}};\n        System.out.println(Practice.{method}(s));\n    }}\n}}", "expected_output": "2"},
         ],
     )
 
@@ -708,6 +728,7 @@ def _java_average_scores(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "double", "int[]"]},
             {"label": "Uses array length", "contains_all": ["length"]},
             {"label": "Avoids integer-only average", "contains_any": ["/ 0.0", "/ (double)", "/(double)", ".0"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] s = {60, 75, 90}; System.out.println(Practice.' + method + '(s));' + '\n    }\n}', "expected_output": "75.0"},
         ],
     )
 
@@ -736,6 +757,7 @@ def _java_format_course(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "String"]},
             {"label": "Uppercases the code", "contains_all": [".toUpperCase("]},
             {"label": "Returns a label", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'System.out.println(Practice.' + method + '("csc101", "Test"));' + '\n    }\n}', "expected_output": "CSC101 - Test"},
         ],
     )
 
@@ -764,6 +786,7 @@ def _java_find_index(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "String[]"]},
             {"label": "Compares strings safely", "contains_all": [".equals"]},
             {"label": "Handles missing values", "contains_all": ["-1"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'String[] s = {"Amina", "Bala"}; System.out.println(Practice.' + method + '(s, "Bala"));' + '\n    }\n}', "expected_output": "1"},
         ],
     )
 
@@ -792,6 +815,7 @@ def _java_highest_value(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int[]"]},
             {"label": "Loops through values", "contains_any": ["for ", "while "]},
             {"label": "Returns the maximum", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] v = {14, 22, 9}; System.out.println(Practice.' + method + '(v));' + '\n    }\n}', "expected_output": "22"},
         ],
     )
 
@@ -820,6 +844,7 @@ def _java_contains_topic(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "boolean"]},
             {"label": "Ignores case", "contains_all": [".equalsIgnoreCase("]},
             {"label": "Returns true or false", "contains_any": ["true", "false"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'String[] t = {"SQL", "Python"}; System.out.println(Practice.' + method + '(t, "sql"));' + '\n    }\n}', "expected_output": "true"},
         ],
     )
 
@@ -848,6 +873,7 @@ def _java_palindrome(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "boolean", "String"]},
             {"label": "Ignores case", "contains_all": [".toLowerCase("]},
             {"label": "Compares characters", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'System.out.println(Practice.' + method + '("Racecar"));' + '\n    }\n}', "expected_output": "true"},
         ],
     )
 
@@ -876,6 +902,7 @@ def _java_reverse_string(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "String"]},
             {"label": "Uses a loop", "contains_any": ["for ", "while "]},
             {"label": "Returns a value", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'System.out.println(Practice.' + method + '("hello"));' + '\n    }\n}', "expected_output": "olleh"},
         ],
     )
 
@@ -906,6 +933,7 @@ def _java_two_sum(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int[]", "target"]},
             {"label": "Uses a HashMap", "contains_all": ["HashMap"]},
             {"label": "Returns an int array", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] n = {2, 7, 11}; int[] r = Practice.' + method + '(n, 9); System.out.println(r[0] + " " + r[1]);' + '\n    }\n}', "expected_output": "0 1"},
         ],
     )
 
@@ -935,6 +963,7 @@ def _java_fizzbuzz(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "String[]"]},
             {"label": "Uses modulo", "contains_all": ["%"]},
             {"label": "Returns array", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'String[] r = Practice.' + method + '(5); System.out.println(String.join(" ", r));' + '\n    }\n}', "expected_output": "1 2 Fizz 4 Buzz"},
         ],
     )
 
@@ -963,6 +992,7 @@ def _java_count_vowels(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int", "String"]},
             {"label": "Ignores case", "contains_all": [".toLowerCase("]},
             {"label": "Returns count", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'System.out.println(Practice.' + method + '("OpenED"));' + '\n    }\n}', "expected_output": "3"},
         ],
     )
 
@@ -991,6 +1021,7 @@ def _java_even_numbers(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int[]"]},
             {"label": "Checks even numbers", "contains_all": ["%"]},
             {"label": "Returns array", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] r = Practice.' + method + '(new int[]{1, 2, 3, 4, 5}); System.out.println(r[0] + " " + r[1]);' + '\n    }\n}', "expected_output": "2 4"},
         ],
     )
 
@@ -1019,6 +1050,7 @@ def _java_second_largest(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int[]"]},
             {"label": "Handles edge case", "contains_all": ["length"]},
             {"label": "Returns a value", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] n = {10, 20, 30}; System.out.println(Practice.' + method + '(n));' + '\n    }\n}', "expected_output": "20"},
         ],
     )
 
@@ -1047,6 +1079,7 @@ def _java_factorial(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int"]},
             {"label": "Uses a loop", "contains_any": ["for ", "while "]},
             {"label": "Returns result", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'System.out.println(Practice.' + method + '(5));' + '\n    }\n}', "expected_output": "120"},
         ],
     )
 
@@ -1075,6 +1108,7 @@ def _java_positive_count(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int[]"]},
             {"label": "Compares to zero", "contains_all": ["> 0"]},
             {"label": "Returns count", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] n = {-5, 0, 3, 8}; System.out.println(Practice.' + method + '(n));' + '\n    }\n}', "expected_output": "2"},
         ],
     )
 
@@ -1103,6 +1137,7 @@ def _java_anagram_check(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "boolean"]},
             {"label": "Ignores case", "contains_all": [".toLowerCase("]},
             {"label": "Compares sorted arrays", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'System.out.println(Practice.' + method + '("Listen", "Silent"));' + '\n    }\n}', "expected_output": "true"},
         ],
     )
 
@@ -1131,6 +1166,7 @@ def _java_max_in_array(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int[]"]},
             {"label": "Handles empty array", "contains_all": ["length"]},
             {"label": "Returns max", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] n = {3, 7, 2, 9}; System.out.println(Practice.' + method + '(n));' + '\n    }\n}', "expected_output": "9"},
         ],
     )
 
@@ -1159,6 +1195,7 @@ def _java_merge_sorted(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int[]"]},
             {"label": "Merges with loop", "contains_any": ["for ", "while "]},
             {"label": "Returns array", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] r = Practice.' + method + '(new int[]{1, 3, 5}, new int[]{2, 4, 6}); for (int v : r) System.out.print(v + " ");' + '\n    }\n}', "expected_output": "1 2 3 4 5 6"},
         ],
     )
 
@@ -1187,6 +1224,7 @@ def _java_count_words(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int", "String"]},
             {"label": "Splits sentence", "contains_all": [".split("]},
             {"label": "Returns count", "contains_all": ["return"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'System.out.println(Practice.' + method + '("Hello world"));' + '\n    }\n}', "expected_output": "2"},
         ],
     )
 
@@ -1216,6 +1254,7 @@ def _java_fibonacci(course: Course, seed: int) -> dict:
             {"label": "Defines the required method", "contains_all": [method, "int[]"]},
             {"label": "Creates Fibonacci sequence", "contains_all": ["return"]},
             {"label": "Uses a loop", "contains_any": ["for ", "while "]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": 'public class Main {\n    public static void main(String[] args) {\n        ' + 'int[] r = Practice.' + method + '(6); for (int v : r) System.out.print(v + " ");' + '\n    }\n}', "expected_output": "0 1 1 2 3 5"},
         ],
     )
 

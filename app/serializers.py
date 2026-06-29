@@ -126,6 +126,7 @@ def serialize_quiz_question(question: QuizQuestion, include_answers: bool = Fals
     return {
         "id": question.id,
         "prompt": question.prompt,
+        "question_type": question.question_type,
         "option_a": question.option_a,
         "option_b": question.option_b,
         "option_c": question.option_c,
@@ -182,7 +183,9 @@ def quiz_attempt_response(attempt: QuizAttempt, include_answers: bool = False) -
             {
                 "question_id": answer.question_id,
                 "prompt": answer.question.prompt,
+                "question_type": answer.question.question_type,
                 "selected_option": answer.selected_option,
+                "answer_text": answer.answer_text,
                 "correct_option": answer.question.correct_option,
                 "is_correct": answer.is_correct,
                 "points_awarded": answer.points_awarded,

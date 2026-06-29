@@ -1,19 +1,72 @@
 import asyncio
 import json
+import logging
 from datetime import datetime, timezone
+from typing import Any
 
+import requests
 from fastapi import APIRouter, HTTPException, Query, Depends
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text as sql_text
 from sqlalchemy.orm import selectinload
 
 from app.dependencies import CONTENT_ROLES, CurrentUser, SessionDep, require_course_membership, require_experimental_group
 from app.practical_schedule import ensure_daily_practicals
 from app.serializers import practical_attempt_response, serialize_practical_exercise
 from app.utils import log_activity
+from db.database import engine
 from model import Course, Membership, PracticalAttempt, PracticalExercise, Quiz, QuizAttempt, ResourceView
 from schemas import PracticalSubmit
 
-router = APIRouter()
+logger = logging.getLogger(__name__)
+PISTON_URL = "https://emkc.org/api/v2/piston/execute"
+
+
+def execute_code_via_piston(code: str, language: str, test_code: str | None = None) -> dict[str, Any]:
+    if language == "python":
+        full = code + "\n\n" + (test_code or "")
+        payload = {
+            "language": "python",
+            "version": "3.10.0",
+            "files": [{"name": "main.py", "content": full}],
+            "compile_timeout": 15000,
+            "run_timeout": 5000,
+        }
+    elif language == "java":
+        files = [{"name": "Practice.java", "content": code}]
+        if test_code:
+            files.append({"name": "Main.java", "content": test_code})
+        payload = {
+            "language": "java",
+            "version": "15.0.2",
+            "files": files,
+            "compile_timeout": 20000,
+            "run_timeout": 8000,
+        }
+    else:
+        return {"error": f"Unsupported language: {language}"}
+
+    try:
+        resp = requests.post(PISTON_URL, json=payload, timeout=30)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.RequestException as e:
+        logger.warning("Piston API error: %s", e)
+        return {"error": str(e)}
+
+
+def execute_sql_in_transaction(setup_sql: str | None, submitted_sql: str) -> str:
+    with engine.connect() as conn:
+        trans = conn.begin()
+        try:
+            if setup_sql:
+                conn.execute(sql_text(setup_sql))
+            result = conn.execute(sql_text(submitted_sql))
+            rows = result.fetchall()
+            return "\n".join(str(tuple(row)) for row in rows)
+        except Exception as e:
+            return f"ERROR: {e}"
+        finally:
+            trans.rollback()
 
 
 def evaluate_submission(exercise: PracticalExercise, submitted_code: str) -> tuple[float, list[dict]]:
@@ -27,25 +80,54 @@ def evaluate_submission(exercise: PracticalExercise, submitted_code: str) -> tup
 
     feedback = []
     all_passed = True
-    for check in checks:
-        text = submitted_code if check.get("case_sensitive") else submitted_code.lower()
-        contains_all = check.get("contains_all") or []
-        contains_any = check.get("contains_any") or []
-        normalized_all = [item if check.get("case_sensitive") else str(item).lower() for item in contains_all]
-        normalized_any = [item if check.get("case_sensitive") else str(item).lower() for item in contains_any]
 
-        ca_passed = all(item in text for item in normalized_all)
-        cy_passed = True if not normalized_any else any(item in text for item in normalized_any)
-        check_passed = ca_passed and cy_passed
-        if not check_passed:
-            all_passed = False
-        feedback.append(
-            {
+    for check in checks:
+        if check.get("run"):
+            exec_type = check.get("type", exercise.practical_type)
+            if exec_type == "sql":
+                setup = check.get("setup_sql")
+                output = execute_sql_in_transaction(setup, submitted_code)
+            elif exec_type == "python":
+                result = execute_code_via_piston(submitted_code, "python", check.get("test_code"))
+                run_result = result.get("run") if isinstance(result.get("run"), dict) else {}
+                output = run_result.get("stdout", "").strip()
+                stderr = run_result.get("stderr", "").strip()
+                if stderr:
+                    output += "\nSTDERR: " + stderr
+            elif exec_type == "java":
+                result = execute_code_via_piston(submitted_code, "java", check.get("test_code"))
+                run_result = result.get("run") if isinstance(result.get("run"), dict) else {}
+                output = run_result.get("stdout", "").strip()
+                stderr = run_result.get("stderr", "").strip()
+                if stderr:
+                    output += "\nSTDERR: " + stderr
+            else:
+                output = ""
+            expected = (check.get("expected_output") or "").strip()
+            passed = output == expected
+            if not passed:
+                all_passed = False
+            feedback.append({
+                "label": check.get("label", "Execution test"),
+                "passed": passed,
+                "message": "Passed" if passed else f"Expected '{expected}', got '{output}'",
+            })
+        else:
+            text = submitted_code if check.get("case_sensitive") else submitted_code.lower()
+            contains_all = check.get("contains_all") or []
+            contains_any = check.get("contains_any") or []
+            normalized_all = [item if check.get("case_sensitive") else str(item).lower() for item in contains_all]
+            normalized_any = [item if check.get("case_sensitive") else str(item).lower() for item in contains_any]
+            ca_passed = all(item in text for item in normalized_all)
+            cy_passed = True if not normalized_any else any(item in text for item in normalized_any)
+            check_passed = ca_passed and cy_passed
+            if not check_passed:
+                all_passed = False
+            feedback.append({
                 "label": check.get("label", "Check"),
                 "passed": check_passed,
                 "message": "Passed" if check_passed else "Failed",
-            }
-        )
+            })
 
     score = 100.0 if all_passed else 0.0
     return score, feedback

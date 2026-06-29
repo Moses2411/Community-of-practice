@@ -39,6 +39,7 @@ if __name__ == "__main__":
             except Exception:
                 conn.rollback()
 
+
     Path("uploads").mkdir(parents=True, exist_ok=True)
 
     ensure_practical_release_schema()
