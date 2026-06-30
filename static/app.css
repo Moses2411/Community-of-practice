@@ -50,6 +50,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  overflow-x: hidden;
 }
 
 button, input, select, textarea { font: inherit; }
@@ -192,6 +193,8 @@ h2 { font-size: 1.14rem; }
   color: #fff;
   letter-spacing: -0.03em;
   line-height: 1.08;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .hero h1 + .hero-text {
@@ -665,7 +668,7 @@ h2 { font-size: 1.14rem; }
   border-color: #38575d;
 }
 
-.workspace { min-width: 0; }
+.workspace { min-width: 0; overflow-x: hidden; }
 
 .topbar {
   min-height: 84px;
@@ -695,7 +698,7 @@ h2 { font-size: 1.14rem; }
 }
 
 #user-name {
-  max-width: 260px;
+  max-width: 200px;
   color: #35474c;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -706,9 +709,12 @@ h2 { font-size: 1.14rem; }
   display: grid;
   gap: 16px;
   padding: 20px 24px 36px;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
-.content { display: grid; gap: 16px; }
+.content { display: grid; gap: 16px; min-width: 0; overflow-wrap: break-word; word-break: break-word; }
 
 button {
   min-height: 40px;
@@ -740,18 +746,23 @@ button.warn { background: var(--accent); }
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .panel { padding: 18px; }
 
-.card { padding: 16px; }
-.card.compact { padding: 12px; }
+.card { padding: 16px; min-width: 0; }
+.card.compact { padding: 12px; min-width: 0; }
 
 .card-header {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .stack { display: grid; gap: 12px; }
@@ -1449,6 +1460,7 @@ button.warn { background: var(--accent); }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .chat-empty-small {
@@ -1572,6 +1584,8 @@ button.warn { background: var(--accent); }
   line-height: 1.45;
   margin: 0;
   padding-right: 50px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .whatsapp-msg-time {
@@ -1816,11 +1830,11 @@ button.warn { background: var(--accent); }
     border-bottom: 1px solid var(--line);
     max-height: none;
     overflow-y: auto;
-    min-height: 60vh;
+    min-height: 50vh;
   }
 
   .chat-main {
-    min-height: 60vh;
+    min-height: 50vh;
   }
 
   .chat-messages {
@@ -1841,17 +1855,22 @@ button.warn { background: var(--accent); }
 }
 
 .chat-back-btn {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  gap: 4px;
+  padding: 0 10px;
+  height: 34px;
   border: none;
-  background: none;
+  background: transparent;
   cursor: pointer;
-  color: var(--text);
+  color: var(--primary);
   border-radius: 6px;
   flex-shrink: 0;
+  font-weight: 650;
+  font-size: 0.88rem;
+  min-height: auto;
+  transition: background 0.12s;
 }
 
 .chat-back-btn:hover {
@@ -2141,6 +2160,9 @@ button.warn { background: var(--accent); }
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .practical-section-body h2 {
@@ -2290,6 +2312,8 @@ button.warn { background: var(--accent); }
   font-size: 0.92rem;
   line-height: 1.6;
   border-bottom: 1px solid var(--line);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .lc-description p {

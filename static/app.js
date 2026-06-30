@@ -1068,8 +1068,9 @@ function renderChatMessages(courseId) {
   return `
     <div class="chat-header">
       <div class="chat-header-info">
-        <button class="chat-back-btn" data-action="back-to-course-list" type="button" aria-label="Back">
+        <button class="chat-back-btn" data-action="back-to-course-list" type="button" aria-label="Back to courses">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Courses
         </button>
         <div class="chat-header-avatar">${course ? escapeHtml(course.code[0]) : "?"}</div>
         <div>
@@ -2617,6 +2618,7 @@ content.addEventListener("click", async (event) => {
 
     if (action === "select-chat-course") {
       state.activeChatCourse = Number(id);
+      history.pushState({ chat: true }, "");
       await loadChatMessages(state.activeChatCourse);
       renderCourseChat();
       scrollChatToBottom(state.activeChatCourse);
@@ -2626,6 +2628,7 @@ content.addEventListener("click", async (event) => {
     if (action === "open-course-chat") {
       state.view = "discussions";
       state.activeChatCourse = Number(id);
+      history.pushState({ chat: true }, "");
       renderNav();
       await loadChatMessages(state.activeChatCourse);
       renderCourseChat();
@@ -3224,5 +3227,14 @@ async function boot() {
     }
   }
 }
+
+window.addEventListener("popstate", () => {
+  if (state.activeChatCourse) {
+    state.activeChatCourse = null;
+    if (state.chatPollInterval) clearInterval(state.chatPollInterval);
+    state.chatPollInterval = null;
+    if (state.view === "discussions") renderCourseChat();
+  }
+});
 
 boot();
