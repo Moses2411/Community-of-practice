@@ -8,12 +8,6 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        fromDatabase:
-          name: cop-db
-          property: connectionString
+        sync: false
       - key: CORS_ORIGINS
         value: "*"
-
-databases:
-  - name: cop-db
-    plan: free
