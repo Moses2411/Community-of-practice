@@ -175,6 +175,10 @@ def build_daily_practical_specs(course: Course, release: PracticalRelease) -> li
         _java_second_largest, _java_factorial, _java_positive_count,
         _java_anagram_check, _java_max_in_array, _java_merge_sorted,
         _java_count_words, _java_fibonacci,
+        _java_print_triangle, _java_email_parser, _java_password_gen,
+        _java_box_surface, _java_bank_account, _java_student_average,
+        _java_quadratic_roots, _java_arithmetic_progression, _java_grade_stats,
+        _java_investment_future,
     ]
     DB_BUILDERS = [
         _sql_select_scores, _sql_group_enrolments, _sql_join_attempts,
@@ -1409,6 +1413,364 @@ def _sql_create_index(course: Course, seed: int) -> dict:
             {"label": "Creates the named index", "contains_all": ["create index", index_name], "case_sensitive": False},
             {"label": "Targets the attempt table", "contains_all": ["on", table], "case_sensitive": False},
             {"label": "Includes lookup columns", "contains_all": ["student_id", "completed_at"], "case_sensitive": False},
+        ],
+    )
+
+
+# --- COSC 211 curriculum-aligned Java builders ---
+
+def _java_print_triangle(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    rows = _choice([4, 5, 6], seed)
+    method = f"printTriangle{suffix}"
+    lines = []
+    num = 1
+    for r in range(1, rows + 1):
+        line = " ".join(str(num + i) for i in range(r))
+        lines.append(line)
+        num += r
+    expected = "\n".join(lines)
+    return _spec(
+        title="Java: Print Number Triangle Pattern",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that takes int n and returns a String. "
+            f"The result should contain n rows of a number triangle where row r has r consecutive numbers. "
+            "Rows are separated by newlines."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(int n) {{\n"
+            "        StringBuilder sb = new StringBuilder();\n"
+            "        int num = 1;\n"
+            "        for (int r = 1; r <= n; r++) {\n"
+            "            // build row r with r numbers\n"
+            "        }\n"
+            "        return sb.toString().trim();\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({rows}) returns the triangle pattern.",
+        solution_notes="Use nested loops: outer loop for rows, inner loop for columns. Track the next number with a counter.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String"]},
+            {"label": "Uses nested loops", "contains_all": ["for ", "for "]},
+            {"label": "Builds a string", "contains_any": ["StringBuilder", "StringBuffer"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({rows}));\n    }}\n}}", "expected_output": expected},
+        ],
+    )
+
+
+def _java_email_parser(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"extractUsername{suffix}"
+    return _spec(
+        title="Java: Extract Email Username",
+        practical_type="java",
+        difficulty="beginner",
+        prompt=(
+            f"Create a Java static method named {method} that accepts a String email "
+            "and returns the username portion (everything before @). "
+            "Return the original string if no @ is found."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(String email) {{\n"
+            "        // find @ and return substring before it\n"
+            "        return email;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}(\"bmghandi@csee.kfupm.edu.sa\") returns \"bmghandi\".",
+        solution_notes="Use indexOf('@') and substring() to extract the username portion.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String"]},
+            {"label": "Uses indexOf", "contains_all": ["indexOf"]},
+            {"label": "Uses substring", "contains_all": ["substring"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}(\"bmghandi@csee.kfupm.edu.sa\"));\n    }}\n}}", "expected_output": "bmghandi"},
+        ],
+    )
+
+
+def _java_password_gen(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"makePassword{suffix}"
+    return _spec(
+        title="Java: Generate Password from Name",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "String firstName, String middleName, String lastName, int age. "
+            "Return a password formed from: first initial of each name (lowercase) "
+            "plus the age. If a middle name initial is not available use 'x'."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(String first, String mid, String last, int age) {{\n"
+            "        // build password from initials + age\n"
+            "        return \"\";\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}(\"Amr\", \"Samir\", \"Al-Ibrahim\", 20) returns \"asx20\".",
+        solution_notes="Use charAt(0), toLowerCase(), and concatenation. Handle short middle names with substring or a default.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String", "int age"]},
+            {"label": "Uses charAt or substring", "contains_any": ["charAt", "substring"]},
+            {"label": "Uses toLowerCase", "contains_all": ["toLowerCase"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}(\"Amr\", \"Samir\", \"Al-Ibrahim\", 20));\n    }}\n}}", "expected_output": "asx20"},
+        ],
+    )
+
+
+def _java_box_surface(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"boxSurfaceArea{suffix}"
+    length = _choice([5, 10, 15, 20], seed)
+    width = _choice([3, 4, 6, 8], seed + 1)
+    height = _choice([2, 5, 7, 9], seed + 2)
+    expected = str(2 * (length * width + length * height + width * height)) + ".0"
+    return _spec(
+        title="Java: Box Surface Area",
+        practical_type="java",
+        difficulty="beginner",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double length, double width, double height and "
+            "returns the surface area: 2(lw + lh + wh)."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static double {method}(double length, double width, double height) {{\n"
+            "        return 0.0;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({length}.0, {width}.0, {height}.0) returns {expected}.",
+        solution_notes="Compute 2 * (length * width + length * height + width * height).",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "double"]},
+            {"label": "Calculates surface area", "contains_all": ["2", "length", "width", "height"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({length}.0, {width}.0, {height}.0));\n    }}\n}}", "expected_output": expected},
+        ],
+    )
+
+
+def _java_bank_account(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"processAccount{suffix}"
+    deposit = _choice([100, 250, 500, 1000], seed)
+    withdraw = _choice([30, 50, 75, 100], seed + 1)
+    balance = 500 + deposit - withdraw
+    return _spec(
+        title="Java: Bank Account Transaction",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double initialBalance, double depositAmount, double withdrawalAmount. "
+            "Add the deposit to the balance, subtract the withdrawal, and return the final balance. "
+            "If withdrawal exceeds the balance after deposit, return -1.0 (overdraft)."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static double {method}(double balance, double deposit, double withdrawal) {{\n"
+            "        // process deposit and withdrawal, check overdraft\n"
+            "        return 0.0;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}(500.0, {deposit}.0, {withdraw}.0) returns {(500 + deposit - withdraw)}.0.",
+        solution_notes="Add deposit, check if withdrawal exceeds new balance, subtract if valid or return -1.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "double"]},
+            {"label": "Checks for overdraft", "contains_all": ["-1"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}(500.0, {deposit}.0, {withdraw}.0));\n    }}\n}}", "expected_output": str(balance) + ".0"},
+        ],
+    )
+
+
+def _java_student_average(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"quizAverage{suffix}"
+    q1 = _choice([65, 70, 75, 80, 85], seed)
+    q2 = _choice([70, 75, 78, 82, 88], seed + 1)
+    q3 = _choice([60, 68, 72, 79, 84], seed + 2)
+    avg = (q1 + q2 + q3) / 3.0
+    fmt_avg = f"{avg:.1f}" if avg != int(avg) else f"{int(avg)}.0"
+    return _spec(
+        title="Java: Student Quiz Average",
+        practical_type="java",
+        difficulty="beginner",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double quiz1, double quiz2, double quiz3 and returns the average of the three quizzes."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static double {method}(double q1, double q2, double q3) {{\n"
+            "        return 0.0;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({q1}.0, {q2}.0, {q3}.0) returns {fmt_avg}.",
+        solution_notes="Add all three scores and divide by 3.0 (not 3) to get a decimal result.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "double"]},
+            {"label": "Returns a double average", "contains_all": ["/ 3.0", "/3.0", "/ 3d", "/3d"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({q1}.0, {q2}.0, {q3}.0));\n    }}\n}}", "expected_output": fmt_avg},
+        ],
+    )
+
+
+def _java_quadratic_roots(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"classifyRoots{suffix}"
+    a = _choice([1, 2, 3], seed)
+    b = _choice([5, 6, 7, 8], seed + 1)
+    c = _choice([2, 3, 1], seed + 2)
+    disc = b * b - 4 * a * c
+    if disc > 0:
+        result = "real and distinct"
+    elif disc == 0:
+        result = "real and equal"
+    else:
+        result = "complex"
+    return _spec(
+        title="Java: Classify Quadratic Roots",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double a, double b, double c representing ax² + bx + c = 0. "
+            "Return \"real and distinct\" if discriminant > 0, "
+            "\"real and equal\" if discriminant == 0, or \"complex\" if discriminant < 0."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(double a, double b, double c) {{\n"
+            "        double d = b * b - 4 * a * c;\n"
+            "        // classify based on discriminant\n"
+            "        return \"\";\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({a}.0, {b}.0, {c}.0) returns \"{result}\".",
+        solution_notes="Calculate discriminant, use if-else to classify based on whether it's positive, zero, or negative.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String"]},
+            {"label": "Calculates discriminant", "contains_all": ["b * b", "- 4", "a * c"]},
+            {"label": "Uses if-else logic", "contains_any": ["if", "else"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({a}.0, {b}.0, {c}.0));\n    }}\n}}", "expected_output": result},
+        ],
+    )
+
+
+def _java_arithmetic_progression(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"apSum{suffix}"
+    a = _choice([2, 3, 5], seed)
+    d = _choice([2, 3, 4], seed + 1)
+    n = _choice([8, 10, 12], seed + 2)
+    tn = a + (n - 1) * d
+    sn = n * (a + tn) / 2
+    fmt_sn = f"{sn:.0f}" if sn == int(sn) else f"{sn}"
+    return _spec(
+        title="Java: Arithmetic Progression Sum",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double firstTerm, double commonDiff, int n. "
+            "Return the sum of the first n terms of an arithmetic progression. "
+            "Formula: Tn = a + (n-1)d, Sn = (n/2)(a + Tn)."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static double {method}(double a, double d, int n) {{\n"
+            "        // compute nth term and sum\n"
+            "        return 0.0;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({a}.0, {d}.0, {n}) returns {fmt_sn}.",
+        solution_notes="Calculate Tn = a + (n-1)*d, then Sn = n * (a + Tn) / 2.0.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "double", "int n"]},
+            {"label": "Calculates nth term", "contains_all": ["- 1", "* d", "(n"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({a}.0, {d}.0, {n}));\n    }}\n}}", "expected_output": fmt_sn},
+        ],
+    )
+
+
+def _java_grade_stats(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"gradeStats{suffix}"
+    threshold = _choice([50, 60], seed)
+    return _spec(
+        title="Java: Grade Pass/Fail Statistics",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            f"int[] scores and returns a String formatted as 'Pass=X Fail=Y' where "
+            f"passing is >= {threshold} and failing is < {threshold}."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(int[] scores) {{\n"
+            "        int pass = 0, fail = 0;\n"
+            "        // count pass and fail\n"
+            "        return \"Pass=\" + pass + \" Fail=\" + fail;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}(new int[]{{45, {threshold}, {threshold + 10}, 30, 80}}) returns \"Pass=2 Fail=3\".",
+        solution_notes="Loop through the array, increment pass or fail based on threshold comparison.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String", "int[]"]},
+            {"label": "Counts pass and fail", "contains_all": ["pass", "fail"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        int[] s = {{45, {threshold}, {threshold + 10}, 30, 80}};\n        System.out.println(Practice.{method}(s));\n    }}\n}}", "expected_output": "Pass=2 Fail=3"},
+        ],
+    )
+
+
+def _java_investment_future(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"futureValue{suffix}"
+    p = _choice([1000, 2000, 5000], seed)
+    r = _choice([5, 7, 10], seed + 1)
+    n = _choice([2, 3, 5], seed + 2)
+    a = p * (1 + r / 100.0) ** n
+    # compare within tolerance
+    fmt_a = f"{a:.2f}"
+    return _spec(
+        title="Java: Investment Future Value",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double principal, double ratePercent, int years. "
+            "Return the future value using A = P(1 + r/100)^n. "
+            "Use Math.pow for exponentiation."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static double {method}(double p, double r, int n) {{\n"
+            "        // A = p * (1 + r/100)^n\n"
+            "        return 0.0;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({p}.0, {r}.0, {n}) returns approximately {fmt_a}.",
+        solution_notes="Compute 1 + r/100, use Math.pow(..., n), multiply by P.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "double"]},
+            {"label": "Uses Math.pow", "contains_all": ["Math.pow", "Math .pow"]},
+            {"label": "Calculates correct formula", "contains_all": ["/ 100", "/100"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.printf(\"%.2f\", Practice.{method}({p}.0, {r}.0, {n}));\n    }}\n}}", "expected_output": fmt_a},
         ],
     )
 
