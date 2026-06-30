@@ -179,6 +179,10 @@ def build_daily_practical_specs(course: Course, release: PracticalRelease) -> li
         _java_box_surface, _java_bank_account, _java_student_average,
         _java_quadratic_roots, _java_arithmetic_progression, _java_grade_stats,
         _java_investment_future,
+        _java_employee_deductions, _java_author_tostring, _java_vector_product,
+        _java_profit_stats, _java_matrix_add, _java_magic_square,
+        _java_recursive_factorial, _java_recursive_fibonacci,
+        _java_weighed_item, _java_rental_mileage, _java_total_payroll,
     ]
     DB_BUILDERS = [
         _sql_select_scores, _sql_group_enrolments, _sql_join_attempts,
@@ -1771,6 +1775,400 @@ def _java_investment_future(course: Course, seed: int) -> dict:
             {"label": "Uses Math.pow", "contains_all": ["Math.pow", "Math .pow"]},
             {"label": "Calculates correct formula", "contains_all": ["/ 100", "/100"]},
             {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.printf(\"%.2f\", Practice.{method}({p}.0, {r}.0, {n}));\n    }}\n}}", "expected_output": fmt_a},
+        ],
+    )
+
+
+# --- Labs 06-10: Overloading, Arrays, 2D Arrays, Recursion ---
+
+def _java_employee_deductions(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"processSalary{suffix}"
+    salary = _choice([5000, 7500, 10000, 15000], seed)
+    d1 = _choice([200, 350, 500], seed + 1)
+    d2 = _choice([100, 150, 250], seed + 2)
+    result = salary - d1 - d2
+    return _spec(
+        title="Java: Overloaded Salary Deductions",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that is overloaded. "
+            "Version 1: accepts double salary, double ded1 — returns salary - ded1. "
+            "Version 2: accepts double salary, double ded1, double ded2 — returns salary - ded1 - ded2. "
+            "Both versions return the remaining salary."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static double {method}(double salary, double ded1) {{\n"
+            "        return salary - ded1;\n"
+            "    }\n"
+            f"    public static double {method}(double salary, double ded1, double ded2) {{\n"
+            "        return 0.0;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({salary}.0, {d1}.0, {d2}.0) returns {result}.0.",
+        solution_notes="Create two methods with same name but different parameter counts.",
+        checks=[
+            {"label": "Defines overloaded methods", "contains_all": [method, "double", "double", "double"]},
+            {"label": "Has two versions", "contains_any": [f"ded2", "ded3"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({salary}.0, {d1}.0, {d2}.0));\n    }}\n}}", "expected_output": f"{result}.0"},
+        ],
+    )
+
+
+def _java_author_tostring(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"formatAuthor{suffix}"
+    names = ["Aliyu Garba", "Aisha Bello", "Musa Ibrahim"]
+    emails = ["galiyu@abu.edu.ng", "aisha@abu.edu.ng", "musa@abu.edu.ng"]
+    genders = ["m", "f", "m"]
+    idx = seed % 3
+    name, email, gender = names[idx], emails[idx], genders[idx]
+    expected = f"{name} ({gender}) at {email}"
+    return _spec(
+        title="Java: Format Author with toString Style",
+        practical_type="java",
+        difficulty="beginner",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "String name, String email, char gender. Return a string "
+            "formatted as 'Name (gender) at email'."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(String name, String email, char gender) {{\n"
+            "        return \"\";\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f'{method}("{name}", "{email}", \'{gender}\') returns "{expected}".',
+        solution_notes="Use string concatenation with parentheses and ' at ' between parts.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String"]},
+            {"label": "Formats correctly", "contains_all": [" + ", "(", "at"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}(\"{name}\", \"{email}\", '{gender}'));\n    }}\n}}", "expected_output": expected},
+        ],
+    )
+
+
+def _java_vector_product(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"dotProduct{suffix}"
+    return _spec(
+        title="Java: Vector Dot Product",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double[] a and double[] b and returns the dot product "
+            "(sum of a[i] * b[i] for each index). Assume arrays are the same length."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static double {method}(double[] a, double[] b) {{\n"
+            "        double sum = 0;\n"
+            "        // compute dot product\n"
+            "        return sum;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}(new double[]{{5, 2, -3}}, new double[]{{2, 3, 5}}) returns 1.0.",
+        solution_notes="Loop through indices, multiply a[i] * b[i], accumulate the sum.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "double", "double[]"]},
+            {"label": "Loops over arrays", "contains_all": ["for", "length"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        double[] a = {{5, 2, -3}};\n        double[] b = {{2, 3, 5}};\n        System.out.println(Practice.{method}(a, b));\n    }}\n}}", "expected_output": "1.0"},
+        ],
+    )
+
+
+def _java_profit_stats(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"profitStats{suffix}"
+    return _spec(
+        title="Java: Array Profit Statistics",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double[] profits and returns a String formatted as "
+            "'Max=X Min=Y Sum=Z Avg=W' with two decimal places."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(double[] profits) {{\n"
+            "        // compute and return formatted statistics\n"
+            "        return \"\";\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}(new double[]{{5000, 2005, 3020, 5057.8, 4500}}) returns a formatted stats string.",
+        solution_notes="Find min and max by comparison, sum with a loop, average = sum / length. Use printf or String.format.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String", "double[]"]},
+            {"label": "Finds min and max", "contains_all": ["min", "max"]},
+            {"label": "Calculates average", "contains_all": ["avg", "sum", "length"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        double[] p = {{5000, 2005, 3020, 5057.8, 4500}};\n        System.out.println(Practice.{method}(p));\n    }}\n}}", "expected_output": "Max=5057.80 Min=2005.00 Sum=19582.80 Avg=3916.56"},
+        ],
+    )
+
+
+def _java_matrix_add(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"sumMatrices{suffix}"
+    tc = (
+        "public class Main {\n"
+        "    public static void main(String[] args) {\n"
+        "        int[][] a = {{1, 2, 3}, {4, 5, 6}};\n"
+        "        int[][] b = {{7, 8, 9}, {10, 11, 12}};\n"
+        f"        System.out.println(Practice.{method}(a, b));\n"
+        "    }\n"
+        "}"
+    )
+    return _spec(
+        title="Java: Add Two Matrices",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "int[][] a and int[][] b and returns a String. "
+            "Add corresponding elements and build a formatted string "
+            "with each row of the sum on a new line (tabs between values)."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(int[][] a, int[][] b) {{\n"
+            "        StringBuilder sb = new StringBuilder();\n"
+            "        // add and format resulting matrix\n"
+            "        return sb.toString().trim();\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method} adds two 3x2 matrices element-wise.",
+        solution_notes="Use nested loops, sum a[i][j] + b[i][j], append to StringBuilder with tabs and newlines.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String", "int[][]"]},
+            {"label": "Uses nested loops", "contains_all": ["for", "for"]},
+            {"label": "Builds string output", "contains_any": ["StringBuilder", "StringBuffer"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": tc, "expected_output": "8\t10\t12\n14\t16\t18"},
+        ],
+    )
+
+
+def _java_magic_square(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"isMagic{suffix}"
+    tc = (
+        "public class Main {\n"
+        "    public static void main(String[] args) {\n"
+        "        int[][] m = {{16, 3, 2, 13}, {5, 10, 11, 8}, {9, 6, 7, 12}, {4, 15, 14, 1}};\n"
+        f"        System.out.println(Practice.{method}(m));\n"
+        "    }\n"
+        "}"
+    )
+    return _spec(
+        title="Java: Check Magic Square",
+        practical_type="java",
+        difficulty="advanced",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "int[][] matrix and returns 'magic' if it is a magic square "
+            "(all rows, columns, and diagonals sum to the same value) "
+            "or 'not magic' otherwise. Assume a square matrix."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(int[][] matrix) {{\n"
+            "        // check if all rows, columns, diagonals have same sum\n"
+            "        return \"\";\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method} on a 4x4 Lo Shu magic square returns 'magic'.",
+        solution_notes="Compute first row sum, then compare each row, column, and both diagonals against it.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String", "int[][]"]},
+            {"label": "Sums rows and columns", "contains_all": ["row", "col", "sum"]},
+            {"label": "Checks diagonals", "contains_all": ["diag"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": tc, "expected_output": "magic"},
+        ],
+    )
+
+
+def _java_recursive_factorial(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"fact{suffix}"
+    n = _choice([5, 6, 7, 8, 9, 10], seed)
+    fact = 1
+    for i in range(2, n + 1):
+        fact *= i
+    return _spec(
+        title="Java: Recursive Factorial",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that recursively "
+            f"computes the factorial of n (n >= 0). Base case: factorial(0) = 1. "
+            "Recursive case: factorial(n) = n * factorial(n-1)."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static int {method}(int n) {{\n"
+            "        if (n <= 1) return 1;\n"
+            "        return 0;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({n}) returns {fact}.",
+        solution_notes="Base case: return 1 when n <= 1. Recursive case: return n * method(n-1).",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "int", "int n"]},
+            {"label": "Uses recursion", "contains_all": [method + "(n-1)", method + "(n - 1)"]},
+            {"label": "Has a base case", "contains_all": ["return 1"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({n}));\n    }}\n}}", "expected_output": str(fact)},
+        ],
+    )
+
+
+def _java_recursive_fibonacci(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"fib{suffix}"
+    n = _choice([6, 7, 8, 9, 10], seed)
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    fib = a
+    return _spec(
+        title="Java: Recursive Fibonacci",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that recursively "
+            f"returns the nth Fibonacci number. fib(0)=0, fib(1)=1, "
+            "fib(n)=fib(n-1)+fib(n-2) for n > 1."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static int {method}(int n) {{\n"
+            "        if (n <= 1) return n;\n"
+            "        return 0;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({n}) returns {fib}.",
+        solution_notes="Base cases: n<=1 returns n. Recursive: return method(n-1) + method(n-2).",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "int", "int n"]},
+            {"label": "Uses recursion", "contains_all": [method + "("]},
+            {"label": "Has base cases", "contains_all": ["return n"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({n}));\n    }}\n}}", "expected_output": str(fib)},
+        ],
+    )
+
+
+# --- COSC 212 curriculum-aligned Java builders ---
+
+def _java_weighed_item(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"calculatePrice{suffix}"
+    unit = _choice([2.5, 3.0, 4.5, 5.0], seed)
+    weight = _choice([0.5, 1.0, 1.37, 2.0], seed + 1)
+    total = unit * weight
+    fmt_total = f"{total:.2f}"
+    return _spec(
+        title="Java: Weighed Item Price",
+        practical_type="java",
+        difficulty="beginner",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double unitPrice and double weightKg and returns the total price "
+            "(unitPrice * weightKg) formatted to two decimal places using String.format."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(double unitPrice, double weightKg) {{\n"
+            "        return \"\";\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f'{method}({unit}, {weight}) returns "{fmt_total}".',
+        solution_notes="Multiply the two values and use String.format('%.2f', result).",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String"]},
+            {"label": "Uses String.format", "contains_any": ["String.format", "printf"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({unit}, {weight}));\n    }}\n}}", "expected_output": fmt_total},
+        ],
+    )
+
+
+def _java_rental_mileage(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"mileageFee{suffix}"
+    kms = _choice([50, 150, 300, 500], seed)
+    if kms < 100:
+        fee = 0.2 * kms
+    elif kms <= 400:
+        fee = 0.3 * kms
+    else:
+        fee = 0.3 * 400 + 0.5 * (kms - 400)
+    fmt_fee = f"{fee:.2f}"
+    return _spec(
+        title="Java: Vehicle Mileage Fee",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "int km and returns the mileage fee as a formatted string with two decimals: "
+            "km < 100: 0.2 * km | 100 <= km <= 400: 0.3 * km | km > 400: 0.3*400 + 0.5*(km-400)."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static String {method}(int km) {{\n"
+            "        double fee;\n"
+            "        // calculate based on km range\n"
+            "        return String.format(\"%.2f\", fee);\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}({kms}) returns \"{fmt_fee}\".",
+        solution_notes="Use if-else to determine the rate tier, compute fee, then format with String.format.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "String", "int km"]},
+            {"label": "Uses conditional logic", "contains_all": ["if", "else"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(Practice.{method}({kms}));\n    }}\n}}", "expected_output": fmt_fee},
+        ],
+    )
+
+
+def _java_total_payroll(course: Course, seed: int) -> dict:
+    suffix = _java_suffix(seed)
+    method = f"totalPayroll{suffix}"
+    return _spec(
+        title="Java: Employee Payroll Total",
+        practical_type="java",
+        difficulty="intermediate",
+        prompt=(
+            f"Create a Java static method named {method} that accepts "
+            "double[] payRates and int[] hoursWorked and returns the total "
+            "payroll (sum of payRates[i] * hoursWorked[i] for each employee)."
+        ),
+        starter_code=(
+            "public class Practice {\n"
+            f"    public static double {method}(double[] rates, int[] hours) {{\n"
+            "        double total = 0;\n"
+            "        // sum all payRate * hours\n"
+            "        return total;\n"
+            "    }\n"
+            "}"
+        ),
+        expected_output=f"{method}(new double[]{{15.0, 20.0}}, new int[]{{40, 30}}) returns 1200.0.",
+        solution_notes="Loop through the array, multiply each pay rate by corresponding hours, accumulate.",
+        checks=[
+            {"label": "Defines the required method", "contains_all": [method, "static", "double", "double[]", "int[]"]},
+            {"label": "Loops and accumulates", "contains_all": ["for", "+"]},
+            {"label": "Returns correct result", "run": True, "type": "java", "test_code": f"public class Main {{\n    public static void main(String[] args) {{\n        double[] rates = {{15.0, 20.0, 25.0}};\n        int[] hours = {{40, 30, 35}};\n        System.out.println(Practice.{method}(rates, hours));\n    }}\n}}", "expected_output": "1775.0"},
         ],
     )
 

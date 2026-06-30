@@ -20,6 +20,8 @@ from schemas import PracticalSubmit
 logger = logging.getLogger(__name__)
 PISTON_URL = "https://emkc.org/api/v2/piston/execute"
 
+router = APIRouter()
+
 
 def execute_code_via_piston(code: str, language: str, test_code: str | None = None) -> dict[str, Any]:
     if language == "python":

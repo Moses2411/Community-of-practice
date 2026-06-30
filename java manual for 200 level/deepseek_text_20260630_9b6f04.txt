@@ -1,0 +1,581 @@
+================================================================================
+                    COSC 211: OBJECT ORIENTED PROGRAMMING I
+                    COMPLETE LAB MANUAL - ALL PRACTICALS
+                    Department of Computer Science
+                    Ahmadu Bello University, Zaria
+================================================================================
+
+================================================================================
+LAB 00: GETTING STARTED - JDK INSTALLATION & FIRST PROGRAM
+================================================================================
+
+OBJECTIVES:
+- Install Java Development Kit (JDK)
+- Set up PATH environment variable
+- Write and run first Java program
+
+TASKS:
+
+1. DOWNLOAD AND INSTALL JDK
+   - Go to: http://www.oracle.com/technetwork/java/javase/downloads/index.html
+   - Download JDK 8 for your operating system
+   - Install following the instructions
+
+2. SET PATH VARIABLE
+   - Add JDK's bin directory to PATH
+   - For Windows: C:\Program Files\Java\jdk1.8.0_xx\bin
+
+3. VERIFY INSTALLATION
+   Command: java -version
+   Command: javac -version
+
+4. FIRST PROGRAM - HELLO WORLD
+   File: Hello.java
+   ----------------------------------------------------------------------------
+   /*
+    * My first Java program to say Hello
+    */
+   public class Hello {
+       public static void main(String[] args) {
+           System.out.println("Hello, world!");
+       }
+   }
+   ----------------------------------------------------------------------------
+
+5. COMPILE AND RUN
+   Command: javac Hello.java
+   Command: java Hello
+
+
+================================================================================
+LAB 01: PRINTING OUTPUT AND ESCAPE SEQUENCES
+================================================================================
+
+OBJECTIVES:
+- Learn different print statements
+- Understand escape sequences
+- Practice formatting output
+
+PRINT STATEMENTS IN JAVA:
+
+1. System.out.print(argument) - Prints without newline
+   File: Printing.java
+   ----------------------------------------------------------------------------
+   public class Printing {
+       public static void main(String[] args) {
+           System.out.print("Computer");
+           System.out.print("Science");
+           System.out.print("Department");
+       }
+   }
+   // Output: ComputerScienceDepartment
+   ----------------------------------------------------------------------------
+
+2. System.out.println(argument) - Prints with newline
+   File: PrintingLine.java
+   ----------------------------------------------------------------------------
+   public class PrintingLine {
+       public static void main(String[] args) {
+           System.out.println("Computer");
+           System.out.println("Science");
+           System.out.println("Department");
+       }
+   }
+   // Output:
+   // Computer
+   // Science
+   // Department
+   ----------------------------------------------------------------------------
+
+3. System.out.printf(format, arguments) - Formatted printing
+   File: PrintingFormat.java
+   ----------------------------------------------------------------------------
+   public class PrintingFormat {
+       public static void main(String[] args) {
+           System.out.printf("%d", 60);                    // 60
+           System.out.printf("%03d%n", 9);                 // 009
+           System.out.printf("PI %.3f", 3.141527);         // PI 3.142
+           System.out.printf("Total is: N%,.2f%n", 84785.8978);
+           System.out.printf("%-10S%n", "Computer");
+           System.out.printf("% .2f", -67.8917);
+           System.out.printf("%C", 'a');
+       }
+   }
+   ----------------------------------------------------------------------------
+
+FORMAT SPECIFIERS:
+   %d  - decimal integer
+   %f  - floating-point number
+   %c  - character
+   %s  - String
+   %n  - newline
+
+FLAGS:
+   -   : left-justify
+   +   : show plus/minus sign
+   0   : zero-padded
+   ,   : comma grouping
+   space : space for positive numbers
+
+ESCAPE SEQUENCES:
+   \t  - Tab
+   \b  - Backspace
+   \n  - Newline
+   \r  - Carriage return
+   \"  - Double quote
+   \\  - Backslash
+
+   File: EscapeSequence.java
+   ----------------------------------------------------------------------------
+   public class EscapeSequence {
+       public static void main(String args[]) {
+           System.out.println("ABU said \"To pass, you must work hard!\".\n");
+           System.out.println("Two Sided Triangles\n*\t*****\n**\t ****\n***\t ***\n****\t **\n*****\t *\n");
+           System.out.println("A Diamond \n *\n\r ***\n\r*****\n ***\n *\n");
+           System.out.println("A Letter S\n *\n\b* *\n * \n* *\n *");
+           System.out.println(" E = 46.12 * 6.9 - 2.5 * 10\n\t\b______________________\n\t 90.5 * 11.6");
+       }
+   }
+   ----------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB01:
+
+1. Write a program that displays the following pattern:
+   1
+   2 3
+   4 5 6
+   7 8 9 10
+
+2. Write a program that displays the following table:
+   1   1   2   3   4
+   2   2   4   6   8
+   3   3   6   9   12
+   4   4   8   12  16
+
+
+================================================================================
+LAB 02: OBJECTS, DATA TYPES, AND STRING CLASS
+================================================================================
+
+OBJECTIVES:
+- Create objects from classes
+- Work with fundamental data types
+- Use String class methods
+
+CREATING OBJECTS:
+   File: MoveRectangle.java
+   ----------------------------------------------------------------------------
+   import java.awt.Rectangle;
+
+   public class MoveRectangle {
+       public static void main(String[] args) {
+           Rectangle myRectangle = new Rectangle(5, 5, 10, 10);
+           System.out.println("Before Translation: " + myRectangle);
+           myRectangle.translate(15, 25);
+           System.out.println("After Translation: " + myRectangle);
+       }
+   }
+   ----------------------------------------------------------------------------
+
+STRING CLASS METHODS:
+   length()        - Returns number of characters
+   toUpperCase()   - Converts to uppercase
+   toLowerCase()   - Converts to lowercase
+   equals(String s) - Compares strings
+   equalsIgnoreCase(String s) - Case-insensitive comparison
+   charAt(int index) - Gets character at position
+   indexOf(String s) - Finds position of substring
+   substring(int from) - Extracts substring
+   substring(int from, int to) - Extracts substring
+   trim()          - Removes whitespace
+   concat(String s) - Concatenates strings
+   valueOf(primitive) - Converts to String
+
+   File: MakePassword.java
+   ----------------------------------------------------------------------------
+   public class MakePassword {
+       public static void main(String[] args) {
+           String firstName = "Amr";
+           String middleName = "Samir";
+           String lastName = "Al-Ibrahim";
+           int age = 20;
+
+           String initials = firstName.substring(0,1) + 
+                            middleName.substring(0,1) + 
+                            lastName.substring(3,4);
+
+           String password = initials.toLowerCase() + age;
+           System.out.printf("Your Password = %-20s", password);
+       }
+   }
+   ----------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB02:
+
+1. Write a program that does the following:
+   (a) Declare double miles = 10.5, increment it
+   (b) Compute: X = d + 43 % 5 * (23 * 3 % 2)
+       Y = 1.5 * 3 + (++a)
+       Z = 3 + d * d + 4
+   (c) Compute R = log(p) where p = 3.758
+
+2. Write a program to display:
+   "The value of Cos 30° is ..."
+   "The value of exp(15) is ..."
+   "The value of Sin 30° is ..."
+   "The value of tan 30° is ..."
+   Use Math.PI for conversion: 30° = (PI * 30) / 180
+
+3. Break email address into username and domain:
+   Email: bmghandi@csee.kfupm.edu.sa
+   Username: bmghandi
+   Domain: csee.kfupm.edu.sa
+
+4. Break full file name into path, filename, and extension:
+   Full name: d:/workarea/lab02/MoveRectangle.java
+   Path: d:/workarea/lab02
+   Filename: MoveRectangle
+   Extension: java
+
+HOMEWORK:
+
+1. Using Random class:
+   import java.util.Random;
+   Random rand = new Random();
+   int randomInt = rand.nextInt(1000);
+
+2. Evaluate and print:
+   f(x,y) = 2x² - y + 3
+   Table:
+   x    y    f(x,y)
+   3.0  3.0  18.0
+   2.0  3.0  8.0
+   -4.0 2.0  33.0
+
+
+================================================================================
+LAB 03: READING INPUT WITH SCANNER
+================================================================================
+
+OBJECTIVES:
+- Read input from keyboard
+- Parse strings and numbers
+- Use Scanner class methods
+
+SCANNER CLASS METHODS:
+   next()        - Returns next token as String
+   nextLine()    - Returns entire line as String
+   nextByte()    - Scans next token as byte
+   nextShort()   - Scans next token as short
+   nextInt()     - Scans next token as int
+   nextLong()    - Scans next token as long
+   nextFloat()   - Scans next token as float
+   nextDouble()  - Scans next token as double
+
+   File: ReadingInput.java
+   ----------------------------------------------------------------------------
+   import java.util.Scanner;
+   import java.io.IOException;
+
+   public class ReadingInput {
+       public static void main(String[] args) throws IOException {
+           Scanner input = new Scanner(System.in);
+
+           System.out.print("Please enter your name: ");
+           String name = input.nextLine();
+
+           System.out.print("Now enter your age: ");
+           int age = input.nextInt();
+
+           System.out.println("Hello " + name + ", you are " + age + " years old.");
+       }
+   }
+   ----------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB03:
+
+1. Volume and Surface Area of a Box
+   Write a program that prompts for length, width, height (in cm)
+   Compute and display:
+   (a) Volume = length × width × height
+   (b) Surface Area = 2(lw + lh + wh)
+
+2. Email Address Parser
+   Prompt user for email address
+   Print username and domain name on different lines
+   Hint: Use indexOf() and substring()
+
+3. Triangle Calculator
+   Prompt user to read the sides
+   Compute:
+   - Area (Heron's formula)
+   - Perimeter
+   - Longest side
+   - Smallest side
+   - Remainder when longest ÷ smallest
+
+
+================================================================================
+LAB 04: CREATING CLASSES AND OBJECTS
+================================================================================
+
+OBJECTIVES:
+- Create classes for object creation
+- Understand constructors vs methods
+- Differentiate static and instance variables
+- Differentiate accessor and mutator methods
+
+CLASS STRUCTURE:
+   File: Box.java
+   ----------------------------------------------------------------------------
+   public class Box {
+       private double length, width, height;
+
+       public Box(double boxLength, double boxWidth, double boxHeight) {
+           length = boxLength;
+           width = boxWidth;
+           height = boxHeight;
+       }
+
+       public double volume() {
+           return length * width * height;
+       }
+
+       public double surfaceArea() {
+           return 2 * (length * width + length * height + width * height);
+       }
+   }
+   ----------------------------------------------------------------------------
+
+USING THE CLASS:
+   File: BoxDemo.java
+   ----------------------------------------------------------------------------
+   public class BoxDemo {
+       public static void main(String[] args) {
+           Box box1 = new Box(20.0, 10.0, 15.0);
+           Box box2 = new Box(6.0, 4.0, 2.0);
+
+           double volume = box1.volume();
+           double area = box1.surfaceArea();
+           
+           System.out.println("The volume of box1 is " + volume + " cubic cm");
+           System.out.println("The surface area of box1 is " + area + " square cm");
+       }
+   }
+   ----------------------------------------------------------------------------
+
+STATIC VS INSTANCE VARIABLES:
+   File: Circle.java and CircleDemo.java
+   ----------------------------------------------------------------------------
+   class Circle {
+       private static int numberOfCircles = 0;
+       private double radius;
+
+       public Circle(double circleRadius) {
+           numberOfCircles++;
+           radius = circleRadius;
+       }
+
+       public static int getNumberOfCircles() {
+           return numberOfCircles;
+       }
+   }
+
+   public class CircleDemo {
+       public static void main(String[] args) {
+           System.out.println("Number of circles: " + Circle.getNumberOfCircles());
+           Circle circle1 = new Circle(8.5);
+           System.out.println("Number of circles: " + Circle.getNumberOfCircles());
+       }
+   }
+   ----------------------------------------------------------------------------
+
+ACCESSOR AND MUTATOR METHODS:
+   File: Rectangle.java and RectangleDemo.java
+   ----------------------------------------------------------------------------
+   class Rectangle {
+       private double length, width;
+
+       public Rectangle(double rectangleLength, double rectangleWidth) {
+           length = rectangleLength;
+           width = rectangleWidth;
+       }
+
+       // Accessor methods (getters)
+       public double getLength() { return length; }
+       public double getWidth() { return width; }
+
+       // Mutator methods (setters)
+       public void setLength(double newLength) { length = newLength; }
+       public void setWidth(double newWidth) { width = newWidth; }
+   }
+   ----------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB04:
+
+1. BankAccount Class
+   Write a java program containing two classes: BankAccount and BankAccountDemo.
+   
+   BankAccount must contain:
+   - instance variable accountNumber of type int
+   - instance variable customerName of type String
+   - instance variable balance of type double
+   - a constructor that initializes each instance variable
+   - a method deposit
+   - a method withdraw
+   - a method getBalance
+
+   BankAccountDemo must:
+   - Prompt for and read the name of the customer
+   - Prompt for and read the initial balance
+   - Create a bankAccount object
+   - Prompt for and read an amount to be deposited
+   - Display current balance after deposit
+   - Prompt for and read an amount to be withdrawn
+   - Display current balance after withdrawal
+
+2. Student Class
+   Write two java classes, Student and StudentDemo in separate files.
+   
+   Student must contain:
+   - instance variable name of type String
+   - instance variable idNumber of type int
+   - three instance variables quiz1, quiz2, quiz3 of type double
+   - a constructor that initializes each instance variable
+   - a get method for each instance variable
+   - three set methods for quiz1, quiz2, quiz3
+   - a method average to return the average
+   - a method printDetails to print in format:
+     Student Name: ?????????
+     Student ID: ?????????
+     Quiz Grades: ???????? ???????? ????????
+
+   StudentDemo must:
+   - Create an object of type Student with values
+   - Call printDetails
+   - Call average and print it
+   - Prompt for new grade for quiz3
+   - Call setQuiz3 to change the value
+   - Print details and average again
+
+
+================================================================================
+LAB 05: SELECTION AND ITERATION STATEMENTS
+================================================================================
+
+OBJECTIVES:
+- Use selection statements (if, if-else, switch)
+- Use iteration statements (while, for, do-while)
+
+SELECTION STATEMENTS:
+
+if Statement:
+   ----------------------------------------------------------------------------
+   if (studentGrade >= 60) {
+       System.out.println("Passed");
+   } else {
+       System.out.println("Failed");
+   }
+   ----------------------------------------------------------------------------
+
+Conditional Operator (?:):
+   ----------------------------------------------------------------------------
+   System.out.println(studentGrade >= 60 ? "Passed" : "Failed");
+   ----------------------------------------------------------------------------
+
+switch Statement:
+   ----------------------------------------------------------------------------
+   switch (grade) {
+       case 'A':
+           System.out.println("Excellent");
+           break;
+       case 'B':
+           System.out.println("Good");
+           break;
+       default:
+           System.out.println("Try harder");
+   }
+   ----------------------------------------------------------------------------
+
+ITERATION STATEMENTS:
+
+while Loop:
+   ----------------------------------------------------------------------------
+   int counter = 1;
+   while (counter <= 10) {
+       System.out.println(counter);
+       counter++;
+   }
+   ----------------------------------------------------------------------------
+
+for Loop:
+   ----------------------------------------------------------------------------
+   for (int counter = 1; counter <= 10; counter++) {
+       System.out.println(counter);
+   }
+   ----------------------------------------------------------------------------
+
+do-while Loop:
+   ----------------------------------------------------------------------------
+   int counter = 1;
+   do {
+       System.out.println(counter);
+       counter++;
+   } while (counter <= 10);
+   ----------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB05:
+
+1. Arithmetic Progression (AP)
+   Prompt for: first term (a), common difference (d), number of terms (n)
+   Compute: Tn = a + (n-1)d
+            Sn = (n/2)(a + Tn)
+   Ensure n is positive
+
+2. Quadratic Equation Solver
+   ax² + bx + c = 0
+   Discriminant = b² - 4ac
+   If discriminant > 0: real and distinct roots
+   If discriminant = 0: real and equal roots
+   If discriminant < 0: complex roots
+
+3. Grade Average Calculator
+   (a) Fixed 10 grades
+   (b) Sentinel-controlled loop (-1 to exit)
+   (c) Exam results (10 students, pass/fail)
+
+HOMEWORK:
+
+1. Investment Calculator
+   Formula: A = P(1 + r/100)^n
+   P = principal, r = interest rate, n = years
+   Use sentinel-controlled loop
+
+2. Geometric Progression Sum
+   First term = 1.5, common ratio = 2
+   Calculate sum of 10 terms (without formula)
+
+
+================================================================================
+IMPORTANT GUIDELINES FOR ALL LABS
+================================================================================
+
+1. Submit both printed copy and soft copy before next lab
+2. Save all programs in folder HW1
+3. Follow Java naming conventions
+4. Indent properly (tab or 3 spaces)
+5. Use comments at beginning of each program:
+   ----------------------------------------------------------------------------
+   /*
+    * Program Name: ...
+    * Purpose: ...
+    * Author: Your Name
+    * ID Number: ...
+    */
+   ----------------------------------------------------------------------------
+6. Use comments to explain variables when needed
+
+
+================================================================================
+END OF COMPLETE LAB MANUAL
+================================================================================

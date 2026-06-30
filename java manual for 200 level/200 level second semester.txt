@@ -1,0 +1,1240 @@
+================================================================================
+                    COSC 212: OBJECT ORIENTED PROGRAMMING II
+                    COMPLETE LAB MANUAL - ALL PRACTICALS
+                    Department of Mathematics
+                    Ahmadu Bello University, Zaria
+                    Adapted from ICS 201 Labs - KFUPM
+================================================================================
+
+================================================================================
+LAB 0: REVISION - STUDENT CLASS
+================================================================================
+
+OBJECTIVES:
+- Review class implementation
+- Work with arrays of objects
+- File I/O
+- Calculate statistics
+
+TASK:
+
+Implement a class Student. A student has an ID and GPA.
+
+STUDENT CLASS:
+---------------------------------------------------------------------------
+public class Student {
+    private int id;
+    private double gpa;
+    
+    // Constructor with ID and GPA
+    public Student(int id, double gpa) {
+        this.id = id;
+        this.gpa = gpa;
+    }
+    
+    // Constructor with ID only
+    public Student(int id) {
+        this(id, 0.0);
+    }
+    
+    // Accessor methods
+    public int getID() { return id; }
+    public double getGPA() { return gpa; }
+    
+    // Mutator method
+    public void setGPA(double gpa) { this.gpa = gpa; }
+    
+    // toString method
+    public String toString() {
+        return "ID: " + id + ", GPA: " + gpa;
+    }
+}
+---------------------------------------------------------------------------
+
+MAIN PROGRAM:
+- Create an array of students
+- Read information from file "student.txt"
+- First line in the file is the number of students
+- Display the list of students
+- Calculate and display:
+  * Average GPA
+  * Percentage of students above average
+
+SAMPLE FILE FORMAT (student.txt):
+---------------------------------------------------------------------------
+5
+1001 3.5
+1002 2.8
+1003 3.9
+1004 2.1
+1005 3.2
+---------------------------------------------------------------------------
+
+
+================================================================================
+LAB 1: INHERITANCE, SHADOWING, OVERRIDING, AND HIDING
+================================================================================
+
+OBJECTIVES:
+- Understand inheritance in Java
+- Learn about shadowing, overriding, and hiding
+- Practice with class hierarchies
+
+1. INHERITANCE IN JAVA
+
+Inheritance is an object-oriented concept that allows classes to be reused in 
+order to define similar, but distinct, classes.
+
+STUDENT CLASS HIERARCHY:
+
+PARENT CLASS - Student:
+---------------------------------------------------------------------------
+public class Student {
+    private String name;
+    private int id;
+    private double gpa;
+    
+    public Student(int id, String name, double gpa) {
+        this.id = id;
+        this.name = name;
+        this.gpa = gpa;
+    }
+    
+    public Student(int id, double gpa) {
+        this(id, " ", gpa);
+    }
+    
+    public String getName() { return name; }
+    public int getID() { return id; }
+    public double getGPA() { return gpa; }
+    
+    public void setName(String newName) {
+        this.name = newName;
+    }
+    
+    public String toString() {
+        return "Student:\nID: " + id + "\nName: " + name + "\nGPA: " + gpa;
+    }
+}
+---------------------------------------------------------------------------
+
+CHILD CLASS - Undergrad:
+---------------------------------------------------------------------------
+public class Undergrad extends Student {
+    private String year;
+    
+    public Undergrad(int id, String name, double gpa, String year) {
+        super(id, name, gpa);
+        this.year = year;
+    }
+    
+    public String getYear() { return year; }
+    public void setYear(String newYear) { this.year = newYear; }
+    
+    public String toString() {
+        return "Undergraduate " + super.toString() + "\nYear: " + year;
+    }
+}
+---------------------------------------------------------------------------
+
+CHILD CLASS - Graduate:
+---------------------------------------------------------------------------
+public class Graduate extends Student {
+    private String thesisTitle;
+    
+    public Graduate(int id, String name, double gpa, String thesisTitle) {
+        super(id, name, gpa);
+        this.thesisTitle = thesisTitle;
+    }
+    
+    public String getThesisTitle() { return thesisTitle; }
+    public void setThesisTitle(String newThesisTitle) {
+        this.thesisTitle = newThesisTitle;
+    }
+    
+    public String toString() {
+        return "Graduate " + super.toString() + "\nThesis: " + thesisTitle;
+    }
+}
+---------------------------------------------------------------------------
+
+TEST CLASS:
+---------------------------------------------------------------------------
+public class TestStudents {
+    public static void main(String[] args) {
+        Student s1 = new Student(97000, "Sameer", 3.51);
+        Student s2 = new Student(98000, 3.22);
+        Undergrad u1 = new Undergrad(99000, "Shahid", 2.91, "Junior");
+        Graduate g1 = new Graduate(200000, "Mubin", 3.57, 
+                                   "Algorithms and Complexity");
+        
+        System.out.println(s1);
+        System.out.println(s2);
+        System.out.println(u1);
+        System.out.println(g1);
+    }
+}
+---------------------------------------------------------------------------
+
+EXERCISE 1: PurchaseItem Hierarchy
+
+Consider a superclass PurchaseItem which models customer's purchases.
+
+PurchaseItem has:
+- Two private instance variables: name (String) and unitPrice (double)
+- One constructor to initialize the instance variables
+- A default constructor to initialize name to "no item", unitPrice to 0 (use this())
+- A method getPrice that returns the unitPrice
+- Accessor and mutator methods
+- A toString method to return the name followed by @ symbol, then the unitPrice
+
+Subclasses:
+1. WeighedItem - has additional instance variable weight (double) in Kg
+2. CountedItem - has additional instance variable quantity (int)
+
+Tasks:
+- Write appropriate constructors for each class using superclass constructor
+- Override getPrice method to return price based on:
+  * WeightedItem: unitPrice * weight
+  * CountedItem: unitPrice * quantity
+- Override toString method for each class
+  * Example output: "Banana @ 3.00 1.37Kg 4.11 SR"
+  * Example output: "Pens @ 4.5 10 units 45 SR"
+
+2. SHADOWING, OVERRIDING, AND HIDING
+
+SHADOWING EXAMPLE:
+---------------------------------------------------------------------------
+public class Shadow {
+    int a;
+    int b;
+    
+    // parameters a/b shadow instance variables a/b
+    public Shadow(int a, int b) {
+        // This sets parameter equal to itself (does nothing)
+        a = a;
+        // This sets instance variable b equal to parameter b
+        this.b = b;
+    }
+    
+    public static void main(String args[]) {
+        Shadow s = new Shadow(37, 47);
+        System.out.println("a = " + s.a);  // Output: a = 0
+        System.out.println("b = " + s.b);  // Output: b = 47
+    }
+}
+---------------------------------------------------------------------------
+
+OVERRIDING EXAMPLE:
+---------------------------------------------------------------------------
+class B {
+    void f() {
+        System.out.println("B.f");
+    }
+}
+
+public class Override extends B {
+    // instance method f overrides instance method B.f
+    void f() {
+        System.out.println("Override.f");
+    }
+    
+    void g() {
+        // call Override.f
+        f();
+        // call B.f
+        super.f();
+    }
+    
+    public static void main(String args[]) {
+        Override o = new Override();
+        o.g();
+        // Output:
+        // Override.f
+        // B.f
+    }
+}
+---------------------------------------------------------------------------
+
+HIDING EXAMPLE:
+---------------------------------------------------------------------------
+class A {
+    static void f() {  // static method
+        System.out.println("A.f");
+    }
+    void g() {  // instance method
+        System.out.println("A.g");
+    }
+}
+
+public class SubA extends A {
+    static void f() {  // static methods are not overridden
+        System.out.println("Hide.f");
+    }
+    void g() {
+        System.out.println("Hide.g");
+    }
+    
+    public static void main(String args[]) {
+        A aref = new SubA();
+        // call A.f()
+        aref.f();
+        // call SubA.g()
+        aref.g();
+        // Output:
+        // A.f
+        // Hide.g
+    }
+}
+---------------------------------------------------------------------------
+
+EXERCISE 2:
+
+Use the sample Java programs provided and modify them to answer:
+
+a- Can an instance method override a static method?
+b- Can a static method override (hide) an instance method?
+c- Can you override a final instance method?
+d- Can you override an instance method and make it final?
+e- Can you override an instance method and change its return type?
+f- Can you hide a final static method?
+g- Can an instance field hide a static field?
+h- Can a static field hide an instance field?
+i- Can an instance method with public visibility override an instance method 
+   with default visibility?
+j- Can an instance method with default visibility override an instance method 
+   with public visibility?
+k- Can an instance method with protected visibility override an instance method 
+   with default visibility?
+l- Can an instance method with default visibility override an instance method 
+   with protected visibility?
+
+m- Based on the last four questions, order the access visibility from the 
+   widest to the narrowest (weakest) and state the rule for overriding 
+   (instance methods) or hiding (static methods).
+
+
+================================================================================
+LAB 2: ABSTRACT CLASSES AND INTERFACES
+================================================================================
+
+OBJECTIVES:
+- Understand Abstract Classes and their purpose
+- Understand Interfaces and their purpose
+
+1. ABSTRACT CLASSES
+
+When an existing class is extended, the subclass programmer has the option of 
+whether or not to override the methods. Sometimes we may wish to force the 
+subclass to override a method. To achieve this, we declare the methods as 
+abstract. A class that has one or more abstract methods is called an abstract 
+class and must be declared as such.
+
+NOTES:
+- Cannot create an instance of an abstract class
+- Can declare a reference variable of abstract class
+- Principles of inheritance, up-casting and polymorphisms apply equally
+
+ABSTRACT PURCHASEITEM:
+---------------------------------------------------------------------------
+public abstract class PurchaseItem {
+    private String name;
+    private double unitPrice;
+    
+    public PurchaseItem(String name, double unitPrice) {
+        this.name = name;
+        this.unitPrice = unitPrice;
+    }
+    
+    public PurchaseItem() {
+        this("no item", 0);
+    }
+    
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public double getUnitPrice() { return unitPrice; }
+    
+    public abstract double getPrice();
+    
+    public String toString() {
+        return name + " @ " + unitPrice;
+    }
+}
+---------------------------------------------------------------------------
+
+EXERCISE 1: Shape Hierarchy
+
+Consider the following shapes:
+- Shape (abstract superclass)
+  - Ellipse (subclass)
+    - Circle (subclass of Ellipse)
+  - Triangle (subclass)
+    - EquilateralTriangle (subclass of Triangle)
+
+Each shape should have:
+- A name (instance variable of type String)
+- A method to compute perimeter
+- A method to compute area
+
+ELLIPSE:
+- Has major and minor axes a and b
+- Constructor should assign largest value to a and smallest to b
+- Area = πab
+- Perimeter = π√(2(a² + b²) - (a-b)²/2)
+- Note: If a = b = r, then P = 2πr
+
+TRIANGLE:
+- Has three instance variables: side1, side2, side3
+- Area = √(S(S-A)(S-B)(S-C))
+- Perimeter = A + B + C
+- S = (A + B + C)/2
+- Condition: side1+side2>side3 AND side2+side3>side1 AND side3+side1>side2
+- Check condition in constructor; print error and terminate if not satisfied
+
+EQUILATERAL TRIANGLE:
+- All three sides are equal
+
+Test Class:
+- Create objects from different classes
+- Store in array of type Shape
+- Loop and print objects' name, area, and perimeter through toString
+
+2. INTERFACES
+
+An interface is similar to a class but with restrictions:
+- All methods are implicitly abstract and public
+- Cannot have instance variables
+- May have constants (final variables) - implicitly public and static
+- Can extend another interface
+- Implemented by a class using the implements keyword
+- A class may implement any number of interfaces
+
+EXERCISE 2: Scalable Interface
+
+Create an interface Scalable with a method scale of type void (takes scaling 
+factor as parameter).
+
+- Make the Shape class implement the Scalable interface
+- Since Shape is abstract, it does not have to implement scale method
+- Make appropriate subclasses override scale method by multiplying their 
+  instance variables by the scale factor
+- Modify Test class to add a static method that receives an array of type 
+  Scalable and a scale factor
+- This method should visit all elements and call the scale method
+- Print objects before and after scaling
+
+
+================================================================================
+LAB 3: POLYMORPHISM, UPCASTING, DOWNCASTING, INSTANCEOF
+================================================================================
+
+OBJECTIVES:
+- Understand polymorphism
+- Learn about upcasting and downcasting
+- Use the instanceof operator
+
+POLYMORPHISM:
+
+Polymorphism means "one name, many forms." In Java, polymorphism manifests 
+itself in the form of multiple methods having the same name (overridden methods).
+
+- Polymorphism is implemented in Java because of late binding
+- Deciding which version of a method executes is based on the actual type of 
+  the object, not on the type of the reference variable
+- Late binding does NOT apply to: final methods, private methods, static methods
+- Polymorphism requires that the reference variable type be a superclass of 
+  the object's class
+
+UPCASTING AND DOWNCASTING:
+
+---------------------------------------------------------------------------
+PurchaseItem p = new WeighedItem("banana", 3.5, 3);  // Upcasting
+// p.getWeight(); // Illegal - getWeight not in PurchaseItem
+
+WeighedItem w = (WeighedItem) p;  // Downcasting
+w.getWeight();  // Now valid
+---------------------------------------------------------------------------
+
+DOWNCASTING RULES:
+- Must be explicit (using class name in brackets)
+- Must be preceded by upcasting
+- Should not go lower than the actual object's class
+- Use instanceof operator for safe downcasting
+
+STAFF MEMBER EXAMPLE:
+
+HIERARCHY:
+- StaffMember (superclass)
+  - Volunteer (subclass)
+  - Employee (subclass)
+    - HourlyEmployee (subclass of Employee)
+    - Executive (subclass of Employee)
+
+STAFFMEMBER CLASS:
+---------------------------------------------------------------------------
+class StaffMember {
+    private String name;
+    private String phone;
+    
+    public StaffMember(String name, String phone) {
+        this.name = name;
+        this.phone = phone;
+    }
+    
+    public double pay() {
+        return 0.0;
+    }
+}
+---------------------------------------------------------------------------
+
+VOLUNTEER CLASS:
+---------------------------------------------------------------------------
+class Volunteer extends StaffMember {
+    public Volunteer(String name, String phone) {
+        super(name, phone);
+    }
+    // No need to override pay, used as inherited
+}
+---------------------------------------------------------------------------
+
+EMPLOYEE CLASS:
+---------------------------------------------------------------------------
+class Employee extends StaffMember {
+    private double payRate;
+    
+    public Employee(String name, String phone, double payRate) {
+        super(name, phone);
+        this.payRate = payRate;
+    }
+    
+    public double getPayRate() { return payRate; }
+    
+    public double pay() {
+        return payRate;
+    }
+}
+---------------------------------------------------------------------------
+
+HOURLYEMPLOYEE CLASS:
+---------------------------------------------------------------------------
+class HourlyEmployee extends Employee {
+    private int hoursWorked;
+    
+    public HourlyEmployee(String name, String phone, double payRate) {
+        super(name, phone, payRate);
+        hoursWorked = 0;
+    }
+    
+    public void addHours(int moreHours) {
+        hoursWorked += moreHours;
+    }
+    
+    public double pay() {
+        double payment = getPayRate() * hoursWorked;
+        hoursWorked = 0;
+        return payment;
+    }
+}
+---------------------------------------------------------------------------
+
+EXECUTIVE CLASS:
+---------------------------------------------------------------------------
+class Executive extends Employee {
+    private double bonus;
+    
+    public Executive(String name, String phone, double payRate) {
+        super(name, phone, payRate);
+        bonus = 0;
+    }
+    
+    public void awardBonus(double execBonus) {
+        bonus = execBonus;
+    }
+    
+    public double pay() {
+        double payment = super.pay() + bonus;
+        bonus = 0;
+        return payment;
+    }
+}
+---------------------------------------------------------------------------
+
+STAFF CLASS (Demonstrating Polymorphism):
+---------------------------------------------------------------------------
+class Staff {
+    public static void main(String[] args) {
+        StaffMember[] staffList;
+        staffList = new StaffMember[4];
+        
+        staffList[0] = new Executive("Ahmad", "860-1490", 1923.07);
+        staffList[1] = new Employee("Ali", "0555-0101", 846.15);
+        staffList[2] = new HourlyEmployee("Othman", "0555-0690", 8.55);
+        staffList[3] = new Volunteer("Bandar", "849-8374");
+        
+        for (int i = 0; i < staffList.length; i++) {
+            if (staffList[i] instanceof Executive) {
+                Executive e = (Executive) staffList[i];
+                e.awardBonus(5000.00);
+            } else if (staffList[i] instanceof HourlyEmployee) {
+                HourlyEmployee h = (HourlyEmployee) staffList[i];
+                h.addHours(40);
+            }
+        }
+        System.out.println("The total amount to pay is " + getTotalCost(staffList));
+    }
+    
+    public static double getTotalCost(StaffMember[] stm) {
+        double amount = 0.0;
+        for (int count = 0; count < stm.length; count++) {
+            amount += stm[count].pay();  // Polymorphism
+        }
+        return amount;
+    }
+}
+---------------------------------------------------------------------------
+
+EXERCISE: RentedVehicle Hierarchy
+
+Implement the following hierarchy:
+
+RentedVehicle (abstract):
+- Private instance variable: baseFee (double)
+- Constructor to initialize baseFee
+- Method getCost() returns baseFee
+- Method travel(int distance) prints "I cannot define how to travel"
+
+FuelVehicle (subclass of RentedVehicle):
+- Additional instance variable: nbKms (total kilometers traveled)
+- Constructor to initialize variables
+- getMileageFees():
+  * If nbKms < 100: 0.2 * nbKms
+  * If 100 <= nbKms <= 400: 0.3 * nbKms
+  * If nbKms > 400: 0.3 * 400 + 0.5 * (nbKms - 400)
+- Overrides travel: updates nbKms by adding distance
+
+Car (subclass of FuelVehicle):
+- Additional instance variable: nbSeats
+- Overrides getCost: add nbSeats * baseFee to mileageFees
+
+Truck (subclass of FuelVehicle):
+- Additional instance variable: capacity
+- Overrides getCost: add baseFee * capacity to mileageFees
+
+Bicycle (subclass of RentedVehicle):
+- Additional instance variable: nbDays
+- Overrides travel: prints "I don't consume fuel"
+- Overrides getCost: returns baseFee * nbDays
+
+Application:
+- Generate 6 objects randomly (Car, Truck, or Bicycle)
+- Store in RentedVehicle array
+- Write loop of 20 iterations: generate random index (0-5), call travel with distance
+- Write loop to find total cost
+- Print details based on object type:
+  * Car: name and number of seats
+  * Truck: name and capacity
+  * Bicycle: name and days rented
+
+
+================================================================================
+LAB 4: INNER CLASSES, JVM, AND CLASS LOADING
+================================================================================
+
+OBJECTIVES:
+- Understand inner classes (static and non-static)
+- Learn about local and anonymous classes
+- Understand JVM architecture
+- Learn about class loading process
+
+1. INNER CLASSES
+
+- Top-level classes: public or default access only
+- Nested classes: classes defined inside other classes
+- Static inner classes: organizational convenience, cannot access non-static 
+  members of enclosing class
+- Non-static inner classes: each instance linked to outer class object, can 
+  access all members of outer class (even private)
+
+LOCAL CLASSES:
+- Declared within a block of code
+- Visible and usable only within that block
+- Can access all members of enclosing class (even private)
+- Can access final local variables and method parameters
+- Cannot have access modifiers or static members
+
+ANONYMOUS CLASSES:
+- Local class with no name
+- Must be subclass of another class or implement an interface
+- Always defined in a statement
+
+EXERCISE 1: Inner Class Examples
+
+Study the following code and answer the comments:
+---------------------------------------------------------------------------
+class Outer {
+    private String o1 = "instance variable from outer";
+    private static String o2 = "static variable from outer";
+    
+    public void instMethodOuter() {
+        // print in1 of class InstInner
+        // print in4 of class StatInner
+    }
+    
+    public static void statMethodOuter() {
+        // call instMethod() of class InstInner
+        // call statMethod2()
+    }
+    
+    // non-static inner class
+    private class InstInner {
+        // First uncomment statements corresponding to in2 and
+        // statMethod1 to check that non-static inner classes 
+        // cannot have static members
+        private String in1 = "private instance variable from non-static inner";
+        // private static String in2="private static variable from non-static inner";
+        
+        public void instMeth1() {
+            // print o1 and o2 of Outer
+        }
+        // public static void statMeth1() { }
+    }
+    
+    // static inner class
+    private static class StatInner {
+        private String in3 = "private instance variable from static inner";
+        private static String in4 = "private static variable from static inner";
+        
+        public void instMeth1() {
+            System.out.println("from instance method of static inner class");
+            // print o1 and o2 of Outer
+        }
+        public static void statMeth1() {
+            System.out.println("from static method of static inner class");
+        }
+    }
+}
+---------------------------------------------------------------------------
+
+EXERCISE 2: Variable Scope in Inner Classes
+
+Which variables may be referenced correctly at line 8?
+---------------------------------------------------------------------------
+1. public class Outer {
+2.     private int a = 0;
+3.     public int b = 0;
+4.     public void method(final int c) {
+5.         int d = 1;
+6.         class Inner {
+7.             private void innerMethod(int e) {
+8.                 //HERE
+9.             }
+10.        }
+11.    }
+12. }
+---------------------------------------------------------------------------
+
+EXERCISE 3: Static Inner Class Variable Scope
+
+Which variables may be referenced correctly at line 6?
+---------------------------------------------------------------------------
+1. public class Outer {
+2.     private int a = 0;
+3.     static public int b = 0;
+4.     static class Inner {
+5.         private void innerMethod(int e) {
+6.             //HERE
+7.         }
+8.     }
+9. }
+---------------------------------------------------------------------------
+
+2. JVM ARCHITECTURE
+
+JVM Components:
+- Method Area: stores class information
+- Heap: stores all instantiated objects
+- Stack: stores activation records for threads
+
+CLASS LOADING PROCESS:
+
+Loading:
+- Reading the class file for a type
+- Parsing to get information
+- Storing information in method area
+
+Information stored in method area:
+- Fully qualified name of the type
+- Direct superclass or super interfaces
+- Whether type is class or interface
+- Type's modifiers
+- Constant pool
+- Field info
+- Method info (bytecodes, stack frame size, exception table)
+
+- End of loading: creation of java.lang.Class instance for the loaded type
+
+LINKING:
+1. Verification: ensuring binary representation is structurally correct
+2. Preparation: allocating memory for class (static) variables, setting to defaults
+3. Resolution: replacing symbolic references with direct references
+
+DEFAULT VALUES:
+- int: 0
+- double: 0.0
+- boolean: false
+- char: '\u0000'
+- Object reference: null
+
+EXERCISE 4: Reflection
+
+TestCircleClass.java demonstrates reflection:
+---------------------------------------------------------------------------
+import java.lang.reflect.Method;
+
+public class TestCircleClass {
+    public static void main(String[] args) {
+        Circle myCircle = new Circle(15.75);
+        Class circleClassInfo = myCircle.getClass();
+        
+        System.out.println("Class Name is: " + circleClassInfo.getName());
+        System.out.println("Parent is: " + circleClassInfo.getSuperclass());
+        System.out.println("Methods are: ");
+        Method[] methods = circleClassInfo.getMethods();
+        for (int i = 0; i < methods.length; i++)
+            System.out.println(methods[i]);
+    }
+}
+---------------------------------------------------------------------------
+
+AVAILABLE METHODS IN CLASS CLASS:
+- public String getName()
+- public Class getSuperclass()
+- public boolean isInterface()
+- public Class[] getInterfaces()
+- public Method[] getMethods()
+- public Field[] getFields()
+- public Constructor[] getConstructors()
+
+Use these methods to get more information about the Circle class.
+
+EXERCISE 5: Constructor Chaining
+
+Try to give the output of the following example without compiling. Then compile 
+and execute to check your answer. Comment the constructor Super(), now compile 
+and explain the compilation error. Comment again the other constructor in Super 
+and compile. Why is your program now compiling without errors; explain.
+
+
+================================================================================
+LAB 5: EVENT DRIVEN PROGRAMMING
+================================================================================
+
+OBJECTIVES:
+- Introduction to event-driven programming
+- Create your first GUI program
+- Understand Listeners
+- Layout Managers (introduction)
+- JLabel component
+- Colors
+
+1. INTRODUCTION TO EVENT-DRIVEN PROGRAMMING
+
+Event-driven programming uses a signal-and-response approach.
+- Event: an object that acts as a signal (e.g., mouse click)
+- Listener: object that responds to the event
+- Program waits for the next event
+
+AWT (Abstract Windowing Toolkit): java.awt.* - Original GUI package
+Swing: javax.swing.* - Improved version introduced in JDK 1.2
+
+BASIC GUI PROGRAM:
+---------------------------------------------------------------------------
+public class AWTandSwing {
+    public static void main(String[] args) {
+        java.awt.Frame awt = new java.awt.Frame("DeeDee");
+        javax.swing.JFrame swg = new javax.swing.JFrame("JiiJii");
+        
+        java.awt.Button awtButton = new java.awt.Button("AWT Button");
+        javax.swing.JButton swgButton = new javax.swing.JButton("SWING Button");
+        
+        awt.setSize(600,400);
+        awt.setLayout(new java.awt.FlowLayout());
+        awt.add(awtButton);
+        awt.setVisible(true);
+        
+        swg.setSize(600,400);
+        swg.setLayout(new java.awt.FlowLayout());
+        swg.add(swgButton);
+        swg.setVisible(true);
+    }
+}
+---------------------------------------------------------------------------
+
+2. LISTENERS
+
+ActionListener interface has one method:
+- public void actionPerformed(ActionEvent ae)
+
+To add action listener to a component:
+---------------------------------------------------------------------------
+buttonObject.addActionListener(myListener);
+---------------------------------------------------------------------------
+
+HANDLING BUTTON CLICK EVENTS - METHOD 1 (Separate Listener Class):
+---------------------------------------------------------------------------
+import java.awt.event.*;
+import javax.swing.*;
+
+public class SimpleButtonAction {
+    public static void main(String[] args) {
+        JFrame frame = new JFrame("Example");
+        JButton butt = new JButton("Click Me");
+        MyListenerClass myListenerObject = new MyListenerClass();
+        butt.addActionListener(myListenerObject);
+        frame.add(butt);
+        frame.setSize(200,200);
+        frame.setVisible(true);
+    }
+}
+
+class MyListenerClass implements ActionListener {
+    public void actionPerformed(ActionEvent ae) {
+        JOptionPane.showMessageDialog(null, "I was clicked !");
+    }
+}
+---------------------------------------------------------------------------
+
+METHOD 2 (Implementing in Same Class):
+---------------------------------------------------------------------------
+import java.awt.event.*;
+import javax.swing.*;
+
+public class SimpleButtonAction implements ActionListener {
+    public SimpleButtonAction() {
+        JFrame frame = new JFrame("Example");
+        JButton butt = new JButton("Click Me");
+        butt.addActionListener(this);
+        frame.add(butt);
+        frame.setSize(200,200);
+        frame.setVisible(true);
+    }
+    
+    public static void main(String[] args) {
+        new SimpleButtonAction();
+    }
+    
+    public void actionPerformed(ActionEvent ae) {
+        JOptionPane.showMessageDialog(null, "I was clicked !");
+    }
+}
+---------------------------------------------------------------------------
+
+METHOD 3 (Anonymous Inner Class):
+---------------------------------------------------------------------------
+import java.awt.event.*;
+import javax.swing.*;
+
+public class SimpleButtonAction {
+    public SimpleButtonAction() {
+        JFrame frame = new JFrame("Example");
+        JButton butt = new JButton("Click Me");
+        butt.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ae) {
+                JOptionPane.showMessageDialog(null, "I was clicked !");
+            }
+        });
+        frame.add(butt);
+        frame.setSize(200,200);
+        frame.setVisible(true);
+    }
+    
+    public static void main(String[] args) {
+        new SimpleButtonAction();
+    }
+}
+---------------------------------------------------------------------------
+
+MULTIPLE BUTTONS EXAMPLE:
+---------------------------------------------------------------------------
+import java.awt.event.*;
+import javax.swing.*;
+import java.awt.*;
+
+public class SimpleButtonAction {
+    int count1;
+    int count2;
+    JFrame frame = new JFrame("Example");
+    JButton butt1 = new JButton("Click Me 1");
+    JButton butt2 = new JButton("Click Me 2");
+    
+    public SimpleButtonAction() {
+        count1 = 0;
+        count2 = 0;
+        
+        InnerListener listener = new InnerListener();
+        butt1.addActionListener(listener);
+        butt2.addActionListener(listener);
+        
+        frame.setLayout(new FlowLayout());
+        frame.add(butt1);
+        frame.add(butt2);
+        frame.setSize(200,200);
+        frame.setVisible(true);
+    }
+    
+    class InnerListener implements ActionListener {
+        public void actionPerformed(ActionEvent ae) {
+            if (ae.getSource() == butt1) {
+                count1++;
+                JOptionPane.showMessageDialog(frame, "1st Button " + count1 + " times");
+            } else {
+                count2++;
+                JOptionPane.showMessageDialog(frame, "2nd Button " + count2 + " times");
+            }
+        }
+    }
+    
+    public static void main(String[] args) {
+        new SimpleButtonAction();
+    }
+}
+---------------------------------------------------------------------------
+
+3. JLABEL COMPONENT
+
+JLabel represents a textual component.
+---------------------------------------------------------------------------
+import java.awt.event.*;
+import javax.swing.*;
+import java.awt.*;
+
+public class SimpleButtonAction extends JFrame {
+    JButton butt1 = new JButton("Click me");
+    JLabel label = new JLabel("");
+    int count = 0;
+    
+    public SimpleButtonAction() {
+        super("My Application");
+        setSize(200,200);
+        setLayout(new FlowLayout());
+        add(butt1);
+        add(label);
+        setVisible(true);
+        
+        butt1.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ae) {
+                count++;
+                label.setText("Button was clicked " + count + " Times");
+            }
+        });
+    }
+    
+    public static void main(String[] args) {
+        new SimpleButtonAction();
+    }
+}
+---------------------------------------------------------------------------
+
+4. COLORS
+
+Color class in java.awt package:
+- new Color(red, green, blue) where values 0-255
+- Predefined constants: Color.RED, Color.BLUE, etc.
+
+COLOR EXAMPLE:
+---------------------------------------------------------------------------
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.*;
+
+public class ColoringFrame extends JFrame {
+    JLabel lbl = new JLabel("where do you want to go today ?");
+    
+    public ColoringFrame() {
+        getContentPane().setBackground(new Color(0,0,255));
+        setSize(500,100);
+        add(lbl);
+        lbl.setFont(new Font("Times New Roman", Font.BOLD, 34));
+        lbl.setForeground(Color.red);
+        setVisible(true);
+    }
+    
+    public static void main(String[] args) {
+        new ColoringFrame();
+    }
+}
+---------------------------------------------------------------------------
+
+COLOR CONSTANTS:
+- Color.BLACK, Color.BLUE, Color.CYAN, Color.DARK_GRAY
+- Color.GRAY, Color.GREEN, Color.LIGHT_GRAY, Color.MAGENTA
+- Color.ORANGE, Color.PINK, Color.RED, Color.WHITE, Color.YELLOW
+
+EXERCISE 1: AC Milan vs Real Madrid
+
+Create a JFrame application with:
+- One JButton labeled "AC Milan"
+- One JButton labeled "Real Madrid"
+- JLabel with text "Result: 0 X 0"
+- JLabel with text "Last Scorer: N/A"
+- JLabel with text "Winner: DRAW"
+
+Functionality:
+- Clicking AC Milan button increments AC Milan score
+- Clicking Real Madrid button increments Real Madrid score
+- Last Scorer shows last team to score
+- Winner shows team with more goals (or DRAW if tied)
+
+EXERCISE 2: Color Changer
+
+Implement a JFrame with four buttons labeled:
+- Red
+- White
+- Blue
+- Green
+
+When a button is pressed, the main Frame should be colored accordingly.
+
+
+================================================================================
+LAB 6: TEXT FIELDS, TEXT AREAS, LAYOUT MANAGERS, APPLETS, MOUSE LISTENERS, MENUS
+================================================================================
+
+OBJECTIVES:
+- Use Text Fields and Text Areas
+- Understand Layout Managers (BorderLayout and GridLayout)
+- Create Applets
+- Implement MouseListeners
+- Create Menus
+
+1. TEXT FIELDS
+
+JTextField: text box for single line input.
+---------------------------------------------------------------------------
+JTextField jta = new JTextField(10);  // 10 visible characters
+String text = jta.getText();          // Get text
+jta.setText("Hello");                 // Set text
+---------------------------------------------------------------------------
+
+TEXT FIELD EXAMPLE WITH NUMBER PARSING:
+---------------------------------------------------------------------------
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+
+class LabExample extends JFrame {
+    JTextField jta1 = new JTextField(10);
+    JTextField jta2 = new JTextField(10);
+    JButton button = new JButton("Add them up");
+    Font fnt = new Font("Times new roman", Font.BOLD, 20);
+    
+    LabExample() {
+        super("Example");
+        setLayout(new FlowLayout());
+        setSize(250,150);
+        add(new JLabel("1st Number"));
+        add(jta1);
+        add(new JLabel("2nd Number"));
+        add(jta2);
+        add(button);
+        
+        button.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ae) {
+                try {
+                    double x1 = Double.parseDouble(jta1.getText().trim());
+                    double x2 = Double.parseDouble(jta2.getText().trim());
+                    JOptionPane.showMessageDialog(null, "Result = " + (x1+x2),
+                                                  "Alert", JOptionPane.INFORMATION_MESSAGE);
+                } catch(Exception e) {
+                    JOptionPane.showMessageDialog(null, "Error in Numbers !",
+                                                  "alert", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        setVisible(true);
+    }
+    
+    public static void main(String[] args) {
+        new LabExample();
+    }
+}
+---------------------------------------------------------------------------
+
+2. JTextArea
+
+JTextArea: multi-line text component.
+---------------------------------------------------------------------------
+JTextArea jta1 = new JTextArea(10, 25);  // 10 rows, 25 columns
+jta1.append("New text");                  // Append text
+---------------------------------------------------------------------------
+
+TEXT AREA EXAMPLE:
+---------------------------------------------------------------------------
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+
+class TextAreaExample extends JFrame {
+    JTextArea jta1 = new JTextArea(10,25);
+    JButton button = new JButton("Add some Text");
+    
+    public TextAreaExample() {
+        super("Example");
+        setSize(300,300);
+        setLayout(new FlowLayout());
+        add(jta1);
+        add(button);
+        
+        button.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ae) {
+                String txt = JOptionPane.showInputDialog(null, "Insert some text");
+                jta1.append(txt);
+            }
+        });
+    }
+    
+    public static void main(String[] args) {
+        new TextAreaExample().setVisible(true);
+    }
+}
+---------------------------------------------------------------------------
+
+ADDING SCROLLING TO TEXT AREA:
+---------------------------------------------------------------------------
+JScrollPane scroll = new JScrollPane(jta1);
+add(scroll);
+---------------------------------------------------------------------------
+
+3. LAYOUT MANAGERS
+
+BORDERLAYOUT:
+- Divides component into five regions: NORTH, SOUTH, EAST, WEST, CENTER
+---------------------------------------------------------------------------
+setLayout(new BorderLayout());
+add(comp, BorderLayout.EAST);
+add(comp, BorderLayout.WEST);
+add(comp, BorderLayout.NORTH);
+add(comp, BorderLayout.SOUTH);
+add(comp, BorderLayout.CENTER);
+---------------------------------------------------------------------------
+
+GRIDLAYOUT:
+- Components arranged in tabular form
+---------------------------------------------------------------------------
+setLayout(new GridLayout(3, 4));  // 3 rows, 4 columns
+---------------------------------------------------------------------------
+
+NULL LAYOUT MANAGER:
+- Allows absolute positioning
+---------------------------------------------------------------------------
+setLayout(null);
+button.setBounds(x, y, width, height);
+---------------------------------------------------------------------------
+
+LAYOUT EXAMPLE:
+---------------------------------------------------------------------------
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+class

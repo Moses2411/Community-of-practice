@@ -1,0 +1,1105 @@
+================================================================================
+                    COSC 211: OBJECT ORIENTED PROGRAMMING I
+                    LABS 06-10 COMPLETE MANUAL
+                    Department of Computer Science
+                    Ahmadu Bello University, Zaria
+================================================================================
+
+================================================================================
+LAB 06: METHOD OVERLOADING, THIS KEYWORD, AND TOSTRING()
+================================================================================
+
+OBJECTIVES:
+- Learn how to overload constructors and methods
+- Learn how to use the this keyword
+- Learn how to write and use the toString() method
+
+1. OVERLOADING
+
+Overloading means having more than one constructor in a class or having more than 
+one method with the same name in a class. The condition for overloading is that 
+the overloaded methods and/or constructors must have different signatures. The 
+signature of a constructor is determined by the number, the type and the order 
+of its parameters.
+
+EMPLOYEE CLASS WITH OVERLOADED CONSTRUCTORS AND METHODS:
+File: Employee.java
+---------------------------------------------------------------------------
+public class Employee {
+    private int iDNumber;
+    private String name;
+    private double salary;
+
+    // Overloaded constructors
+    public Employee(int iD, String employeeName, double employeeSalary) {
+        iDNumber = iD;
+        name = employeeName;
+        salary = employeeSalary;
+    }
+
+    public Employee(String employeeName, int iD, double employeeSalary) {
+        iDNumber = iD;
+        name = employeeName;
+        salary = employeeSalary;
+    }
+
+    public Employee(int iD, String employeeName) {
+        iDNumber = iD;
+        name = employeeName;
+        salary = 0.0;
+    }
+
+    public Employee(String employeeName, int iD) {
+        iDNumber = iD;
+        name = employeeName;
+        salary = 0.0;
+    }
+
+    public void setSalary(double employeeSalary) {
+        salary = employeeSalary;
+    }
+
+    public int getIDNumber() { return iDNumber; }
+    public String getName() { return name; }
+    public double getSalary() { return salary; }
+
+    // Overloaded methods
+    public void deductions(double telephoneBills) {
+        salary -= telephoneBills;
+    }
+
+    public void deductions(double telephoneBills, double medicalBills) {
+        salary -= (telephoneBills + medicalBills);
+    }
+
+    public void raiseSalary(double percentIncrease) {
+        salary += salary * percentIncrease / 100;
+    }
+
+    public void printDetails() {
+        System.out.println("\nID Number:" + iDNumber + "\nName:" + name + "\nSalary:" + salary);
+    }
+}
+---------------------------------------------------------------------------
+
+TESTING THE EMPLOYEE CLASS:
+File: TestEmployee.java
+---------------------------------------------------------------------------
+import java.util.Scanner;
+
+public class TestEmployee {
+    public static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+        int number;
+        String name;
+        double salary;
+
+        System.out.print("Enter Name for Employee 1: ");
+        name = input.nextLine();
+        System.out.print("Enter ID Number for Employee 1: ");
+        number = input.nextInt();
+        System.out.print("Enter Salary for Employee 1: ");
+        salary = input.nextDouble();
+
+        Employee emp1 = new Employee(number, name, salary);
+        // OR: Employee emp1 = new Employee(name, number, salary);
+
+        System.out.print("\nEnter Name for Employee 2: ");
+        name = input.nextLine(); // consume newline
+        name = input.nextLine();
+        System.out.print("Enter ID Number for Employee 2: ");
+        number = input.nextInt();
+
+        Employee emp2 = new Employee(number, name);
+        emp2.setSalary(emp1.getSalary());
+
+        emp1.deductions(50);
+        emp2.deductions(60, 40);
+
+        emp1.printDetails();
+        emp2.printDetails();
+    }
+}
+---------------------------------------------------------------------------
+
+2. THE THIS KEYWORD
+
+'this' is an implicit reference variable that refers to the current object. 
+It is used for two purposes:
+1. To refer to instance variables when their names are the same as parameters
+2. To call a constructor from within another constructor of the same class
+
+EMPLOYEE CLASS USING THIS KEYWORD:
+File: Employee2.java
+---------------------------------------------------------------------------
+public class Employee2 {
+    private int iDNumber;
+    private String name;
+    private double salary;
+
+    public Employee2(int iDNumber, String name, double salary) {
+        this.iDNumber = iDNumber;
+        this.name = name;
+        this.salary = salary;
+    }
+
+    public Employee2(String name, int iDNumber, double salary) {
+        this(iDNumber, name, salary);
+    }
+
+    public Employee2(int iDNumber, String name) {
+        this(iDNumber, name, 0.0);
+    }
+
+    public Employee2(String name, int iDNumber) {
+        this(iDNumber, name, 0.0);
+    }
+
+    public void setSalary(double salary) {
+        this.salary = salary;
+    }
+
+    public int getIDNumber() { return iDNumber; }
+    public String getName() { return name; }
+    public double getSalary() { return salary; }
+
+    public void deductions(double telephoneBills) {
+        salary -= telephoneBills;
+    }
+
+    public void deductions(double telephoneBills, double medicalBills) {
+        salary -= (telephoneBills + medicalBills);
+    }
+
+    public void raiseSalary(double percentIncrease) {
+        salary += salary * percentIncrease / 100;
+    }
+
+    public void printDetails() {
+        System.out.println("\nID Number:" + iDNumber + "\nName:" + name + "\nSalary: " + salary);
+    }
+}
+---------------------------------------------------------------------------
+
+3. THE TOSTRING() METHOD
+
+The toString() method returns a representation of the object as a String. The 
+Java system automatically calls toString() whenever the object reference 
+variable is used in an operation that requires a string.
+
+EMPLOYEE CLASS WITH TOSTRING():
+File: Employee3.java
+---------------------------------------------------------------------------
+public class Employee3 {
+    private int iDNumber;
+    private String name;
+    private double salary;
+
+    public Employee3(int iDNumber, String name, double salary) {
+        this.iDNumber = iDNumber;
+        this.name = name;
+        this.salary = salary;
+    }
+
+    public Employee3(String name, int iDNumber, double salary) {
+        this(iDNumber, name, salary);
+    }
+
+    public Employee3(int iDNumber, String name) {
+        this(iDNumber, name, 0.0);
+    }
+
+    public Employee3(String name, int iDNumber) {
+        this(iDNumber, name, 0.0);
+    }
+
+    public void setSalary(double salary) {
+        this.salary = salary;
+    }
+
+    public int getIDNumber() { return iDNumber; }
+    public String getName() { return name; }
+    public double getSalary() { return salary; }
+
+    public void deductions(double telephoneBills) {
+        salary -= telephoneBills;
+    }
+
+    public void deductions(double telephoneBills, double medicalBills) {
+        salary -= (telephoneBills + medicalBills);
+    }
+
+    public void raiseSalary(double percentIncrease) {
+        salary += salary * percentIncrease / 100;
+    }
+
+    // toString() method instead of printDetails()
+    public String toString() {
+        return '\n' + "ID Number: " + iDNumber + '\n' + "Name: " + name + '\n' + "Salary: " + salary;
+    }
+}
+---------------------------------------------------------------------------
+
+TESTING WITH TOSTRING():
+File: TestEmployee3.java
+---------------------------------------------------------------------------
+import java.util.Scanner;
+
+public class TestEmployee3 {
+    public static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+        int number;
+        String name;
+        double salary;
+
+        System.out.print("Enter Name for Employee 1: ");
+        name = input.nextLine();
+        System.out.print("Enter ID Number for Employee 1: ");
+        number = input.nextInt();
+        System.out.print("Enter Salary for Employee 1: ");
+        salary = input.nextDouble();
+
+        Employee3 emp1 = new Employee3(number, name, salary);
+
+        System.out.print("\nEnter Name for Employee 2: ");
+        name = input.nextLine();
+        name = input.nextLine();
+        System.out.print("Enter ID Number for Employee 2: ");
+        number = input.nextInt();
+
+        Employee3 emp2 = new Employee3(number, name);
+        emp2.setSalary(emp1.getSalary());
+
+        emp1.deductions(50);
+        emp2.deductions(60, 40);
+
+        // toString() is called automatically
+        System.out.println(emp1);
+        System.out.println(emp2);
+    }
+}
+---------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB06:
+
+1. Download folder lab06 and study all example files:
+   (a) Open Employee1.java and TestEmployee1.java - study, compile, execute
+   (b) Try alternative constructor calls
+   (c) Open Employee2.java and TestEmployee2.java - study, compile, execute
+   (d) Open Employee3.java and TestEmployee3.java - study, compile, execute
+
+2. (a) Design a class called Author that contains:
+   (i) Three private instance variables: name (String), email (String), 
+       and gender (char - either 'm' or 'f')
+   (ii) One constructor to initialize name, email and gender
+   (iii) Public getters and setters: getName(), getEmail(), setEmail(), getGender()
+   (iv) A toString() method that returns "Author-Name (gender) at email"
+        Example: "Aliyu Garba (m) at galiyu@abu.edu.ng"
+   (b) Write a test program called TestAuthor to test the constructor and methods
+
+3. Modify the Box.java and BoxDemo.java from LAB04 as follows:
+   (a) Add methods getLength(), getWidth() and getHeight()
+   (b) Add another constructor which receives only the length. It calls the 
+       other constructor supplying this length for all dimensions (forms a cube)
+   (c) Add another constructor that receives another Box object as parameter 
+       and uses its dimensions to initialize the current box object
+   (d) Add a toString() method that returns length, width, and height as a string
+
+   The class BoxDemo.java should be modified to create three Box objects using 
+   each of the three constructors and then print them.
+
+
+================================================================================
+LAB 07: WORKING WITH ARRAYS
+================================================================================
+
+OBJECTIVES:
+- Using arrays
+- Cloning arrays
+- Writing methods that receive arrays as parameters or return arrays
+- Using arrays of objects
+
+1. BRIEF REVIEW OF ARRAYS
+
+An array is a contiguous list of memory cells that can be identified using a 
+single variable.
+
+DECLARING ARRAYS:
+---------------------------------------------------------------------------
+int[] grades = new int[10];  // Declare and create array
+
+// Or in two steps:
+int[] grades;        // Declaration
+grades = new int[10]; // Creation
+---------------------------------------------------------------------------
+
+ACCESSING ARRAY ELEMENTS:
+---------------------------------------------------------------------------
+grades[5] = 15;  // Assign 15 to element number 6
+
+// Array length property
+for (int i = 0; i < grades.length; i++)
+    grades[i] = i;
+---------------------------------------------------------------------------
+
+ARRAY INITIALIZER LIST:
+---------------------------------------------------------------------------
+char[] vowels = {'a', 'e', 'i', 'o', 'u'};  // No 'new' operator needed
+---------------------------------------------------------------------------
+
+ARRAY OF OBJECTS:
+---------------------------------------------------------------------------
+Student[] student = new Student[10];  // Declare array of Student objects
+student[0] = new Student(...);        // Create Student object in first cell
+---------------------------------------------------------------------------
+
+EXAMPLE: VECTOR AND DOT PRODUCTS
+File: Vector.java
+---------------------------------------------------------------------------
+public class Vector {
+    public static void main(String[] args) {
+        double[] x = {5, 2, -3, 4, -2};
+        double[] y = {2, 3, 5, -4, -6};
+        double[] z;
+
+        z = vectorProduct(x, y);
+
+        System.out.println("The vector product is: ");
+        for (int k = 0; k < z.length; k++)
+            System.out.print(z[k] + " ");
+        System.out.println("\n\nThe dot product is: " + dotProduct(x, y));
+    }
+
+    public static double[] vectorProduct(double[] a, double[] b) {
+        double[] t = new double[a.length];
+        for (int i = 0; i < a.length; i++)
+            t[i] = a[i] * b[i];
+        return t;
+    }
+
+    public static double dotProduct(double[] a, double[] b) {
+        double sum = 0;
+        for (int i = 0; i < a.length; i++)
+            sum += a[i] * b[i];
+        return sum;
+    }
+}
+---------------------------------------------------------------------------
+
+EXAMPLE: ARRAY CLONING
+File: ArrayCloning.java
+---------------------------------------------------------------------------
+public class ArrayCloning {
+    public static void main(String[] args) {
+        double[] x = {5, 2, -3, 4, -2};
+        double[] y = new double[5];
+        double[] z = {10, 25, 30, 45};
+        double[] w;
+
+        y = x;  // y and x refer to the same object
+
+        System.out.println("The array referenced by y is: ");
+        for (int k = 0; k < y.length; k++)
+            System.out.print(y[k] + " ");
+
+        x[0] = 200;
+        x[4] = 66;
+
+        System.out.println("\n\nThe array referenced by y is: ");
+        for (int k = 0; k < y.length; k++)
+            System.out.print(y[k] + " ");
+
+        w = (double[]) z.clone();  // w and z refer to different objects
+
+        z[0] = 88;
+        z[2] = -99;
+
+        System.out.println("\n\nThe array referenced by w is: ");
+        for (int k = 0; k < w.length; k++)
+            System.out.print(w[k] + " ");
+    }
+}
+---------------------------------------------------------------------------
+
+EXAMPLE: STUDENT CLASS WITH QUIZ ARRAY
+File: Student.java
+---------------------------------------------------------------------------
+public class Student {
+    private int iDNumber;
+    private double[] quiz;
+
+    public Student(int iDNumber, double[] quiz) {
+        this.iDNumber = iDNumber;
+        this.quiz = quiz;
+    }
+
+    public int getID() {
+        return iDNumber;
+    }
+
+    public double getQuiz(int quizNumber) {
+        if (quizNumber >= 1 && quizNumber <= quiz.length)
+            return quiz[quizNumber - 1];
+        else
+            return -1.0;
+    }
+
+    public void setQuiz(int quizNumber, double quizGrade) {
+        if (quizNumber >= 1 && quizNumber <= quiz.length)
+            quiz[quizNumber - 1] = quizGrade;
+    }
+
+    public double sum() {
+        double sum = 0;
+        for (int k = 0; k < quiz.length; k++)
+            sum += quiz[k];
+        return sum;
+    }
+
+    public double average() {
+        return sum() / quiz.length;
+    }
+
+    public String toString() {
+        String s = "" + iDNumber;
+        for (int i = 0; i < quiz.length; i++)
+            s += "\t" + quiz[i];
+        s += "\t" + average();
+        return s;
+    }
+}
+---------------------------------------------------------------------------
+
+EXAMPLE: TESTING STUDENT CLASS
+File: TestStudent.java
+---------------------------------------------------------------------------
+import java.util.Scanner;
+
+public class TestStudent {
+    public static void main(String[] args) {
+        double[] quiz = {50, 30, 60, 55};
+        Student student = new Student(980000, quiz);
+
+        quiz = null;  // Destroy reference to quiz array
+
+        System.out.println("Student information before changing grade:");
+        System.out.println(student);
+
+        student.setQuiz(3, 90);
+        student.setQuiz(4, 75);
+
+        System.out.println("\nStudent information after changing grades:");
+        System.out.println(student);
+    }
+}
+---------------------------------------------------------------------------
+
+EXAMPLE: ARRAY OF STUDENT OBJECTS
+File: TestStudent2.java
+---------------------------------------------------------------------------
+import java.util.Scanner;
+
+public class TestStudent2 {
+    static Scanner stdin = new Scanner(System.in);
+    static final int STUDENT_COUNT = 3, QUIZZES_COUNT = 3;
+
+    public static void main(String[] args) {
+        Student[] student = new Student[STUDENT_COUNT];
+
+        double sum = 0;
+        for (int i = 0; i < student.length; i++) {
+            System.out.println("\nCreating student #" + (i + 1));
+            student[i] = createStudent();
+        }
+
+        System.out.println("\nID\tAverage");
+        for (int i = 0; i < student.length; i++) {
+            System.out.println(student[i].getID() + "\t" + student[i].average());
+            sum += student[i].sum();
+        }
+        System.out.println("\nOverall average is: " + sum / (STUDENT_COUNT * QUIZZES_COUNT));
+    }
+
+    static Student createStudent() {
+        int id;
+        double[] quiz = new double[QUIZZES_COUNT];
+        System.out.print("Enter student ID# ");
+        id = stdin.nextInt();
+
+        System.out.println("\nEnter three quizzes for this student");
+        for (int i = 0; i < quiz.length; i++) {
+            System.out.print("Quiz#" + (i + 1) + " ");
+            quiz[i] = stdin.nextDouble();
+        }
+
+        Student s = new Student(id, quiz);
+        return s;
+    }
+}
+---------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB07:
+
+1. Modify Example 3 (Student class) so that after the array is created, it 
+   displays a menu that allows the following operations in a loop until Quit:
+   
+   Menu:
+   1. Show a quiz grade
+   2. Show all quizzes
+   3. Change a quiz grade
+   4. Show average
+   5. Quit
+   
+   Note: If option 1 is chosen, prompt for quiz number and call getQuiz()
+   If option 3 is chosen, prompt for quiz number and new grade, call setQuiz()
+
+2. Modify Example 4 (TestStudent2) as follows:
+   
+   Add another method: static double quizAverage(Student[] student, int k)
+   that receives an array of student objects and a quiz number, returns 
+   the average for that quiz.
+   
+   Modify main method to print:
+   - ID number, grades and average of each student in tabular form
+   - The average of each quiz
+   - The overall average for all students
+
+3. Ahmadu Bello University Press wants to know the maximum, minimum, total, 
+   and average profit from years 2005 to 2014. Profits are:
+   
+   Year    Profit (₦)
+   2005    5,000,000.34
+   2006    2,005,000.00
+   2007    3,020,000.97
+   2008    5,057,800.20
+   2009    4,500,000.67
+   2010    5,000,000.00
+   2011    3,048,900.56
+   2012    4,800,000.50
+   2013    2,980,000.71
+   2014    4,909,000.80
+   
+   (a) Create a class called Profit with:
+      i. Two array fields: profit and year
+      ii. getMaxProfit() - returns maximum profit
+      iii. getMinProfit() - returns minimum profit
+      iv. getSumOfProfit() - returns total profit
+      v. getAverageProfit() - returns average profit
+      vi. getRange() - returns difference between max and min
+      vii. showProfitBelowAverage() - displays all profits below average
+   (b) Create a test class to instantiate Profit and display results
+
+
+================================================================================
+LAB 08: TWO-DIMENSIONAL ARRAYS
+================================================================================
+
+OBJECTIVES:
+- Declare, create and access regular and rugged 2-D arrays
+- Use 2-D arrays in methods (as parameters and return type)
+- Clone 2-D arrays
+
+1. BRIEF REVIEW OF 2-D ARRAYS
+
+A Java 2D-array is an array of arrays of possibly different sizes.
+
+DECLARING 2-D ARRAYS:
+---------------------------------------------------------------------------
+// Regular 2D array (same number of columns in each row)
+double[][] quiz = new double[6][7];
+
+// Equivalent declaration:
+double[][] quiz;
+quiz = new double[6][];
+for (int k = 0; k < quiz.length; k++)
+    quiz[k] = new double[7];
+---------------------------------------------------------------------------
+
+RUGGED 2D ARRAYS (rows of different sizes):
+---------------------------------------------------------------------------
+int[][] a = new int[3][];
+a[0] = new int[5];
+a[1] = new int[3];
+a[2] = new int[4];
+---------------------------------------------------------------------------
+
+INITIALIZER LIST FOR 2D ARRAYS:
+---------------------------------------------------------------------------
+int[][] a = {{1, 0, 12, -1}, {7, -3, 2, 5}, {-5, -2, 2, 9}};
+
+// Rugged array with different row sizes:
+int[][] a = {{1, 0, 12, -1}, {7, 5}, {-5, -2, 2, 9}};
+---------------------------------------------------------------------------
+
+ACCESSING 2D ARRAY ELEMENTS:
+---------------------------------------------------------------------------
+quiz[2][5] = 95.0;  // Access row 2, column 5
+---------------------------------------------------------------------------
+
+EXAMPLE: RUGGED 2D ARRAY
+File: Rugged2DArray.java
+---------------------------------------------------------------------------
+import java.util.Scanner;
+import java.util.StringTokenizer;
+
+public class Rugged2DArray {
+    public static void main(String[] args) {
+        Scanner stdin = new Scanner(System.in);
+        int[][] a = new int[3][];
+        a[0] = new int[5];
+        a[1] = new int[3];
+        a[2] = new int[4];
+
+        int row, column;
+        for (row = 0; row < a.length; row++) {
+            System.out.println("Enter " + a[row].length + " elements for row#" + (row + 1));
+            String inputLine = stdin.nextLine();
+            StringTokenizer tokenizer = new StringTokenizer(inputLine);
+            for (column = 0; column < a[row].length; column++)
+                a[row][column] = Integer.parseInt(tokenizer.nextToken());
+        }
+
+        System.out.println("\nThe array elements are:\n");
+        for (row = 0; row < a.length; row++) {
+            for (column = 0; column < a[row].length; column++)
+                System.out.print(a[row][column] + " ");
+            System.out.println();
+        }
+    }
+}
+---------------------------------------------------------------------------
+
+2. USING 2-D ARRAYS IN METHODS
+
+EXAMPLE: MATRIX OPERATIONS
+File: Matrix.java
+---------------------------------------------------------------------------
+import java.util.Scanner;
+import java.util.StringTokenizer;
+
+public class Matrix {
+    static Scanner stdin = new Scanner(System.in);
+
+    public static double[][] sum(double[][] a, double[][] b) {
+        int row = a.length;
+        int col = a[0].length;
+        double[][] c = new double[row][col];
+
+        for (int i = 0; i < row; i++)
+            for (int j = 0; j < col; j++)
+                c[i][j] = a[i][j] + b[i][j];
+
+        return c;
+    }
+
+    public static double[][] createArray(int row, int col) {
+        double[][] array = new double[row][col];
+
+        System.out.println("Enter a " + row + " by " + col + " matrix row-wise");
+        for (int i = 0; i < row; i++) {
+            String input = stdin.nextLine();
+            StringTokenizer st = new StringTokenizer(input);
+            for (int j = 0; j < col; j++)
+                array[i][j] = Double.parseDouble(st.nextToken());
+        }
+        return array;
+    }
+
+    public static void print(double[][] a) {
+        int row = a.length;
+        int col = a[0].length;
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++)
+                System.out.print(a[i][j] + "\t");
+            System.out.println();
+        }
+    }
+
+    public static void main(String[] args) {
+        int row, column;
+        System.out.print("Enter number of rows: ");
+        row = stdin.nextInt();
+        System.out.print("Enter number of columns: ");
+        column = stdin.nextInt();
+
+        double[][] a = createArray(row, column);
+        double[][] b = createArray(row, column);
+        double[][] c = sum(a, b);
+        System.out.println("The sum of the two arrays is");
+        print(c);
+    }
+}
+---------------------------------------------------------------------------
+
+3. CLONING 2-D ARRAYS
+
+SHALLOW CLONING:
+---------------------------------------------------------------------------
+double[][] b = (double[][]) a.clone();  // Only copies references to rows
+---------------------------------------------------------------------------
+
+DEEP CLONING:
+---------------------------------------------------------------------------
+double[][] b = (double[][]) a.clone();
+for (int i = 0; i < b.length; i++)
+    b[i] = (double[]) a[i].clone();
+---------------------------------------------------------------------------
+
+EXAMPLE: SHALLOW CLONING
+File: ShallowCloning.java
+---------------------------------------------------------------------------
+public class ShallowCloning {
+    public static void main(String args[]) {
+        double[][] a = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+
+        System.out.println("Printing array a");
+        Matrix.print(a);
+
+        double[][] b = (double[][]) a.clone();
+
+        System.out.println("Printing array b - clone of a");
+        Matrix.print(b);
+
+        b[1][1] = 20;
+
+        System.out.println("Printing array b after making changes to it");
+        Matrix.print(b);
+
+        System.out.println("Printing array a after changing its clone");
+        Matrix.print(a);
+    }
+}
+---------------------------------------------------------------------------
+
+EXAMPLE: DEEP CLONING
+File: DeepCloning.java
+---------------------------------------------------------------------------
+public class DeepCloning {
+    public static void main(String args[]) {
+        double[][] a = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+
+        System.out.println("Printing array a");
+        Matrix.print(a);
+
+        double[][] b = (double[][]) a.clone();
+        for (int i = 0; i < b.length; i++)
+            b[i] = (double[]) a[i].clone();
+
+        System.out.println("Printing array b - clone of a");
+        Matrix.print(b);
+
+        b[1][1] = 20;
+
+        System.out.println("Printing array b after making changes to it");
+        Matrix.print(b);
+
+        System.out.println("Printing array a after changing its clone");
+        Matrix.print(a);
+    }
+}
+---------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB08:
+
+1. Modify the Matrix class by adding a static method transpose that returns 
+   the transpose of a matrix it receives as parameter. Call this method from 
+   main to get the transpose of array c (the sum of the two matrices) and print it.
+
+2. The file attend.txt contains attendance of 15 students in 20 lectures, with 
+   1 representing present and 0 representing absent. Write a program that:
+   - Reads the data from the file into a 2-D integer array, absences, of size 
+     15 by 21, storing ID numbers in the first column and absences in the 
+     remaining 20 columns
+   - Counts the number of absences of each student and store in a 2-D integer 
+     array, numberOfAbsences of size 15 by 2 (ID in first column, absences 
+     in second)
+   - Prints the content of numberOfAbsences
+
+3. Modify assignment 2 so that the program prints only those students whose 
+   number of absences is more than 5. Define and use these methods:
+   
+   public static int[][] createArray(String fname, int rows, int cols)
+   - Receives filename, rows and columns, opens file, creates 2-D array and returns it
+   
+   public static int[][] countAbsences(int[][] absences)
+   - Counts the absences of each student
+
+HOMEWORK: Magic Square
+
+A square matrix is a magic square if:
+- The elements are unique
+- Adding elements in each row, each column, and each diagonal gives the same result
+
+Example magic square:
+   16  3  2 13
+    5 10 11  8
+    9  6  7 12
+    4 15 14  1
+
+Write a program that reads the size of a square matrix, reads the elements, 
+and prints "IS A MAGIC SQUARE" or "IS NOT A MAGIC SQUARE".
+
+Include at least the following methods:
+- static int sumRow(int[][] a, int i): Returns sum of row i
+- static int sumColumn(int[][] a, int i): Returns sum of column i
+- static int sumDiagonal(int[][] a, boolean mainDiag): Returns sum of main 
+  diagonal if mainDiag is true, or minor diagonal if false
+- static boolean isUnique(int[][] a): Returns true if all elements are unique
+- static boolean isMagic(int[][] a): Returns true if square is magic
+
+
+================================================================================
+LAB 09: FILE INPUT/OUTPUT AND STRING PROCESSING
+================================================================================
+
+OBJECTIVES:
+- Read input from a text file
+- Write/append output to text files
+- String processing (breaking a string into tokens)
+
+1. READING INPUT FROM A FILE
+
+FileReader: Read one character at a time
+---------------------------------------------------------------------------
+FileReader reader = new FileReader("inputfile.txt");
+
+// Important methods:
+// read() - returns integer character or -1 if no more data
+// close() - closes the file
+---------------------------------------------------------------------------
+
+EXAMPLE: READING ONE CHARACTER AT A TIME
+File: TestFileReader.java
+---------------------------------------------------------------------------
+import java.io.*;
+
+class TestFileReader {
+    public static void main(String[] args) throws IOException {
+        char c;
+        int input;
+        FileReader in = new FileReader("inputfile.txt");
+        while ((input = in.read()) != -1) {
+            c = (char) input;
+            System.out.print(c);
+        }
+        System.out.println();
+        in.close();
+    }
+}
+---------------------------------------------------------------------------
+
+BufferedReader: Read one line at a time
+---------------------------------------------------------------------------
+BufferedReader in = new BufferedReader(new FileReader("inputfile.txt"));
+// Use: readLine() method
+---------------------------------------------------------------------------
+
+2. WRITING/APPENDING OUTPUT TO TEXT FILES
+
+FileWriter: Write one character at a time
+---------------------------------------------------------------------------
+FileWriter writer = new FileWriter("outputfile.txt");     // Writing
+FileWriter writer = new FileWriter("outputfile.txt", true); // Appending
+
+// Important methods:
+// write(int c) - writes the given character
+// close() - closes the file
+---------------------------------------------------------------------------
+
+PrintWriter: Write strings with print() and println() methods
+---------------------------------------------------------------------------
+PrintWriter out = new PrintWriter(new FileWriter("result.txt"));
+PrintWriter out = new PrintWriter(new FileWriter("result.txt", true));
+---------------------------------------------------------------------------
+
+EXAMPLE: READING AND WRITING WITH PRINTWRITER
+File: TestPrintWriter.java
+---------------------------------------------------------------------------
+import java.io.*;
+
+class TestPrintWriter {
+    public static void main(String[] args) throws IOException {
+        String s;
+        BufferedReader in = new BufferedReader(new FileReader("inputfile.txt"));
+        PrintWriter out = new PrintWriter(new FileWriter("outputfile.txt"));
+        while ((s = in.readLine()) != null) {
+            out.println(s);
+        }
+        in.close();
+        out.close();
+    }
+}
+---------------------------------------------------------------------------
+
+3. STRING PROCESSING (STRINGTOKENIZER CLASS)
+
+StringTokenizer breaks a string into individual tokens.
+
+CONSTRUCTORS AND METHODS:
+---------------------------------------------------------------------------
+StringTokenizer(String str)                    // Uses whitespace as delimiters
+StringTokenizer(String str, String delim)      // Uses specified delimiters
+StringTokenizer(String str, String delim, boolean returnDelims)
+
+String nextToken()          // Returns next token
+boolean hasMoreTokens()     // Tests if more tokens exist
+int countTokens()           // Returns number of tokens remaining
+---------------------------------------------------------------------------
+
+EXAMPLE: PROCESSING QUIZ DATA
+File: ProcessQuiz.java
+---------------------------------------------------------------------------
+import java.io.*;
+import java.util.StringTokenizer;
+
+class ProcessQuiz {
+    static final int QUIZ_COUNT = 3;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader in = new BufferedReader(new FileReader("quizdata.txt"));
+        PrintWriter out = new PrintWriter(new FileWriter("result.txt"));
+
+        String s, name, iDNumber;
+        double[] quiz = new double[3];
+        StringTokenizer st;
+
+        while ((s = in.readLine()) != null) {
+            st = new StringTokenizer(s, "|");
+            iDNumber = st.nextToken();
+            name = st.nextToken();
+            System.out.print(iDNumber + "\t" + name + "\t");
+            out.print(iDNumber + "\t" + name + "\t");
+
+            double sum = 0;
+            for (int i = 0; i < quiz.length; i++) {
+                quiz[i] = Double.parseDouble(st.nextToken().trim());
+                sum += quiz[i];
+                System.out.print(quiz[i] + "\t");
+                out.print(quiz[i] + "\t");
+            }
+
+            System.out.println(sum / QUIZ_COUNT);
+            out.println(sum / QUIZ_COUNT);
+        }
+
+        in.close();
+        out.close();
+    }
+}
+---------------------------------------------------------------------------
+
+EXAMPLE: GOOD AND POOR STUDENTS
+File: GoodAndPoor.java
+---------------------------------------------------------------------------
+import java.io.*;
+import java.util.StringTokenizer;
+
+class GoodAndPoor {
+    static final int QUIZ_COUNT = 3, MAX_STUDENT_COUNT = 30;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader in = new BufferedReader(new FileReader("quizdata.txt"));
+        PrintWriter good = new PrintWriter(new FileWriter("good.txt"));
+        PrintWriter poor = new PrintWriter(new FileWriter("poor.txt"));
+
+        Student[] student = new Student[MAX_STUDENT_COUNT];
+        double[] quiz;
+        String s, name;
+        int iDNumber, actualStudentCount = 0;
+        StringTokenizer st;
+        double sum = 0, average;
+
+        while ((s = in.readLine()) != null) {
+            st = new StringTokenizer(s, "|");
+            iDNumber = Integer.parseInt(st.nextToken().trim());
+            name = st.nextToken();
+            quiz = new double[QUIZ_COUNT];
+            for (int i = 0; i < quiz.length; i++)
+                quiz[i] = Double.parseDouble(st.nextToken().trim());
+
+            student[actualStudentCount] = new Student(iDNumber, name, quiz);
+            sum += student[actualStudentCount].average();
+            actualStudentCount++;
+        }
+
+        average = sum / actualStudentCount;
+        good.println("The class average is: " + average);
+        good.println("\nStudents with grades equal or above average:\n");
+        poor.println("The class average is: " + average);
+        poor.println("\nStudents with grades below average:\n");
+
+        for (int i = 0; i < actualStudentCount; i++)
+            if (student[i].average() >= average)
+                good.println(student[i]);
+            else
+                poor.println(student[i]);
+
+        in.close();
+        good.close();
+        poor.close();
+    }
+}
+---------------------------------------------------------------------------
+
+ASSIGNMENTS FOR LAB09:
+
+1. The file integerdata.txt contains integer numbers randomly arranged. Write 
+   a program that reads the data and prints the numbers as they appear in the 
+   file both on the screen and in the file result2.txt. Your program should 
+   also print the count of the numbers, their sum and their average.
+
+2. Write a program that reads data from the file message.txt and displays on 
+   the screen:
+   - The content of the file
+   - The number of words
+   - The longest word
+   - The shortest word
+   - The average length of the words
+   
+   Note: Do not count punctuation characters (.,;:?!'"") as part of a word.
+
+3. Use the BankAccount class to write a program that creates an array of 
+   BankAccount objects using the data contained in the file accounts.txt. 
+   Your program then prints all those customers whose balance is greater 
+   than 10,000.00 into a file richcustomers.txt.
+
+
+================================================================================
+LAB 10: RECURSION
+================================================================================
+
+OBJECTIVES:
+- Learn to think recursively
+- Learn how to write simple recursive methods
+
+1. THINKING RECURSIVELY
+
+Recursion is a divide-and-conquer approach where a solution is defined in 
+terms of a smaller version of the problem.
+
+RECURSIVE DEFINITIONS:
+---------------------------------------------------------------------------
+factorial(n) = { 1                    if n = 0
+               { n * factorial(n-1)   if n > 0
+
+sumFromOneTo(n) = { 0                     if n <= 0
+                  { sumFromOneTo(n-1) + n if n > 0
+
+arrayMinimum(array, start) = { array[start]                    if start == length-1
+                             { min(array[start], arrayMinimum(array, start+1))
+
+isMember(element, array, start) = { false                    if start >= length
+                                  { true                     if array[start] == element
+                                  { isMember(element, array, start+1)
+---------------------------------------------------------------------------
+
+2. WRITING RECURSIVE METHODS IN JAVA
+
+EXAMPLE 1: SUM FROM ONE TO N (Recursive vs Iterative)
+---------------------------------------------------------------------------
+// Recursive
+public static int sumFromOneTo(int n) {
+    if (n <= 0)
+        return 0;
+    else
