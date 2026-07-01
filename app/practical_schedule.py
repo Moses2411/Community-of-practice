@@ -42,7 +42,7 @@ def current_practical_release(now: datetime | None = None) -> PracticalRelease:
     today_12 = datetime(today.year, today.month, today.day, 12, tzinfo=LAGOS_TZ)
     today_19 = datetime(today.year, today.month, today.day, 19, tzinfo=LAGOS_TZ)
 
-    WINDOW_DURATION = timedelta(hours=1)
+    WINDOW_DURATION = timedelta(hours=2)
 
     if now_local >= today_19:
         release_at = today_19
