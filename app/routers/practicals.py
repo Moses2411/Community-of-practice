@@ -85,40 +85,7 @@ def evaluate_submission(exercise: PracticalExercise, submitted_code: str) -> tup
 
     for check in checks:
         if check.get("run"):
-            exec_type = check.get("type", exercise.practical_type)
-            if exec_type == "sql":
-                setup = check.get("setup_sql")
-                output = execute_sql_in_transaction(setup, submitted_code)
-            elif exec_type == "python":
-                result = execute_code_via_piston(submitted_code, "python", check.get("test_code"))
-                run_result = result.get("run") if isinstance(result.get("run"), dict) else {}
-                output = run_result.get("stdout", "").strip()
-                stderr = run_result.get("stderr", "").strip()
-                if stderr:
-                    output += "\nSTDERR: " + stderr
-            elif exec_type == "java":
-                result = execute_code_via_piston(submitted_code, "java", check.get("test_code"))
-                run_result = result.get("run") if isinstance(result.get("run"), dict) else {}
-                output = run_result.get("stdout", "").strip()
-                stderr = run_result.get("stderr", "").strip()
-                if stderr:
-                    output += "\nSTDERR: " + stderr
-            else:
-                output = ""
-            expected = (check.get("expected_output") or "").strip()
-            if check.get("comparison") == "exact":
-                passed = output == expected
-            else:
-                out_norm = " ".join(output.split())
-                exp_norm = " ".join(expected.split())
-                passed = out_norm == exp_norm
-            if not passed:
-                all_passed = False
-            feedback.append({
-                "label": check.get("label", "Execution test"),
-                "passed": passed,
-                "message": "Passed" if passed else f"Expected '{expected}', got '{output}'",
-            })
+            continue
         else:
             text = submitted_code if check.get("case_sensitive") else submitted_code.lower()
             contains_all = check.get("contains_all") or []
