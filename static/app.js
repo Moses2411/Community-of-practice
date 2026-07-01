@@ -22,6 +22,7 @@ const state = {
   quizTimeLeft: 45,
   quizResult: null,
   quizAttempts: [],
+  quizMode: null,
   adminTab: "overview",
   chatMessages: {},
   activeChatCourse: null,
@@ -1547,6 +1548,10 @@ function renderPracticalHistory(attempts) {
 function renderQuizzes() {
   setTitle("Tests", "Academic performance");
 
+  if (state.quizPhase === "choose" && state.activeQuiz) {
+    renderQuizModeChoice(state.activeQuiz);
+    return;
+  }
   if (state.quizPhase === "active") {
     renderQuizActive();
     return;
@@ -1556,6 +1561,24 @@ function renderQuizzes() {
     return;
   }
   renderQuizList();
+}
+
+function renderQuizModeChoice(test) {
+  content.innerHTML = `
+    <section class="panel stack" style="max-width:500px;margin:0 auto;text-align:center">
+      <h2>${escapeHtml(test.title)}</h2>
+      <p class="muted">${escapeHtml(test.description || "")}</p>
+      <p>Choose question format:</p>
+      <div style="display:grid;gap:12px;margin-top:12px">
+        <button class="btn-primary" data-action="start-quiz-mode" data-mode="mcq" type="button">
+          MCQ (${test.mcq_count ?? "?"} questions)
+        </button>
+        <button class="btn-primary" data-action="start-quiz-mode" data-mode="theory" type="button">
+          Theory (${test.theory_count ?? "?"} questions)
+        </button>
+      </div>
+    </section>
+  `;
 }
 
 function renderQuizList() {
@@ -2665,15 +2688,30 @@ content.addEventListener("click", async (event) => {
       showMessage("Message deleted.");
     }
 
-    if (action === "open-quiz") {
-      const test = await api(`/api/quizzes/${id}`);
-      state.view = "quizzes";
+    if (action === "start-quiz-mode") {
+      const mode = button.dataset.mode;
+      const test = await api(`/api/quizzes/${state.activeQuiz.id}?mode=${mode}`);
+      state.quizMode = mode;
       state.activeQuiz = test;
       state.quizQuestions = test.questions || [];
       state.quizIndex = 0;
       state.quizAnswers = {};
       state.quizPhase = "active";
       state.quizStartedAt = Date.now();
+      renderQuizzes();
+      return;
+    }
+
+    if (action === "open-quiz") {
+      const test = await api(`/api/quizzes/${id}`);
+      state.view = "quizzes";
+      state.activeQuiz = test;
+      state.quizQuestions = [];
+      state.quizIndex = 0;
+      state.quizAnswers = {};
+      state.quizMode = null;
+      state.quizPhase = "choose";
+      state.quizStartedAt = null;
       renderNav();
       renderQuizzes();
     }

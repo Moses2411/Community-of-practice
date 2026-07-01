@@ -99,17 +99,19 @@ def create_quiz_question(quiz_id: int, payload: QuizQuestionCreate, db: SessionD
 
 
 @router.get("/api/quizzes/{quiz_id}")
-def get_quiz(quiz_id: int, db: SessionDep, current_user: CurrentUser):
+def get_quiz(quiz_id: int, db: SessionDep, current_user: CurrentUser, mode: str | None = Query(default=None)):
     require_experimental_group(current_user)
     quiz = db.get(Quiz, quiz_id)
     if quiz is None:
         raise HTTPException(status_code=404, detail="Quiz not found.")
     require_course_membership(db, current_user, quiz.course_id)
+    if mode and mode not in ("mcq", "theory"):
+        raise HTTPException(status_code=400, detail="Mode must be 'mcq' or 'theory'.")
     include_answers = current_user.role in CONTENT_ROLES
-    round_questions = select_round_questions(db, quiz, current_user)
-    log_activity(db, current_user, "quiz_viewed", "quiz", quiz_id, {"quiz_type": quiz.quiz_type})
+    round_questions = select_round_questions(db, quiz, current_user, question_type=mode)
+    log_activity(db, current_user, "quiz_viewed", "quiz", quiz_id, {"quiz_type": quiz.quiz_type, "mode": mode})
     db.commit()
-    return serialize_quiz(quiz, include_questions=True, include_answers=include_answers, round_questions=round_questions)
+    return serialize_quiz(quiz, include_questions=True, include_answers=include_answers, round_questions=round_questions, selected_mode=mode)
 
 
 @router.post("/api/quizzes/{quiz_id}/submit")

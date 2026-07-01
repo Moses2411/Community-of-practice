@@ -24,14 +24,33 @@ def bank_question(
     option_d: str,
     correct_option: str,
     explanation: str,
+    question_type: str = "mcq",
 ) -> dict:
     return {
         "prompt": prompt,
+        "question_type": question_type,
         "option_a": option_a,
         "option_b": option_b,
         "option_c": option_c,
         "option_d": option_d,
         "correct_option": correct_option,
+        "explanation": explanation,
+        "points": 1,
+    }
+
+
+def theory_question(
+    prompt: str,
+    explanation: str = "",
+) -> dict:
+    return {
+        "prompt": prompt,
+        "question_type": "theory",
+        "option_a": "",
+        "option_b": "",
+        "option_c": "",
+        "option_d": "",
+        "correct_option": None,
         "explanation": explanation,
         "points": 1,
     }
@@ -111,20 +130,27 @@ def csv_response(filename: str, headers: list[str], rows: Iterable[Iterable]) ->
     )
 
 
-def select_round_questions(db: Session, quiz, user: User, round_size: int = QUIZ_ROUND_SIZE) -> list:
+def select_round_questions(db: Session, quiz, user: User, round_size: int = QUIZ_ROUND_SIZE, question_type: str | None = None) -> list:
     import random
 
     questions = list(quiz.questions)
+    if question_type:
+        questions = [q for q in questions if q.question_type == question_type]
+    if not questions:
+        return []
+
     if len(questions) <= round_size:
         return questions
 
-    answered_question_ids = set(
+    answered_ids = set(
         db.scalars(
             select(QuizAnswer.question_id)
             .join(QuizAttempt, QuizAnswer.attempt_id == QuizAttempt.id)
             .where(QuizAttempt.quiz_id == quiz.id, QuizAttempt.user_id == user.id)
         ).all()
     )
-    unseen_questions = [q for q in questions if q.id not in answered_question_ids]
+    unseen_questions = [q for q in questions if q.id not in answered_ids]
     pool = unseen_questions if len(unseen_questions) >= round_size else questions
-    return random.sample(pool, round_size)
+    if len(pool) > round_size:
+        pool = random.sample(pool, round_size)
+    return pool

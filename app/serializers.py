@@ -142,11 +142,14 @@ def serialize_quiz(
     include_questions: bool = False,
     include_answers: bool = False,
     round_questions: list[QuizQuestion] | None = None,
+    selected_mode: str | None = None,
 ) -> dict:
     questions = []
     if include_questions:
         selected = round_questions if round_questions is not None else list(quiz.questions)
         questions = [serialize_quiz_question(q, include_answers=include_answers) for q in selected]
+    mcq_count = len([q for q in quiz.questions if q.question_type == "mcq"])
+    theory_count = len([q for q in quiz.questions if q.question_type == "theory"])
     return {
         "id": quiz.id,
         "course_id": quiz.course_id,
@@ -155,6 +158,9 @@ def serialize_quiz(
         "description": quiz.description,
         "created_at": quiz.created_at,
         "question_count": len(quiz.questions),
+        "mcq_count": mcq_count,
+        "theory_count": theory_count,
+        "selected_mode": selected_mode,
         "round_size": min(QUIZ_ROUND_SIZE, len(quiz.questions)),
         "questions": questions,
     }
