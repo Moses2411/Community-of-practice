@@ -106,7 +106,12 @@ def evaluate_submission(exercise: PracticalExercise, submitted_code: str) -> tup
             else:
                 output = ""
             expected = (check.get("expected_output") or "").strip()
-            passed = output == expected
+            if check.get("comparison") == "exact":
+                passed = output == expected
+            else:
+                out_norm = " ".join(output.split())
+                exp_norm = " ".join(expected.split())
+                passed = out_norm == exp_norm
             if not passed:
                 all_passed = False
             feedback.append({
